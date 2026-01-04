@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Authentication Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .status-card { margin: 15px 0; padding: 15px; border-radius: 8px; border-left: 5px solid; }
+        .success { background: #d4edda; border-color: #28a745; }
+        .error { background: #f8d7da; border-color: #dc3545; }
+        .warning { background: #fff3cd; border-color: #ffc107; }
+        .info { background: #d1ecf1; border-color: #17a2b8; }
+        button { padding: 12px 20px; margin: 8px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 11px; max-height: 300px; overflow-y: auto; }
+        .step { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Admin Authentication Fix Test</h1>
+        
+        <div class="status-card info">
+            <h3>🔧 Authentication Issues Fixed</h3>
+            <ul>
+                <li><strong>JWT Token Storage:</strong> Admin login now saves JWT token to localStorage</li>
+                <li><strong>API Authentication:</strong> All API calls now include Authorization header</li>
+                <li><strong>Dashboard Stats:</strong> Removed hardcoded fallback values</li>
+                <li><strong>Real Data Display:</strong> Dashboard will show actual database counts</li>
+            </ul>
+        </div>
+
+        <div class="status-card warning">
+            <h3>📋 Expected Results After Fix</h3>
+            <div class="step">
+                <strong>Before:</strong> Dashboard showed hardcoded values (8/12 Buses, 6 Routes, etc.)
+            </div>
+            <div class="step">
+                <strong>After:</strong> Dashboard should show real database values (3/3 Buses, 3 Routes, etc.)
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="testLogin()">🔐 Test Admin Login</button>
+            <button onclick="testAuthenticatedAPI()">🔑 Test Authenticated API</button>
+            <button onclick="testDashboardStats()">📊 Test Dashboard Stats</button>
+            <button onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        let authToken = null;
+        
+        function addResult(title, status, data, isError = false, isWarning = false) {
+            const resultDiv = document.getElementById('results');
+            let statusClass = 'success';
+            let statusIcon = '✅';
+            
+            if (isError) {
+                statusClass = 'error';
+                statusIcon = '❌';
+            } else if (isWarning) {
+                statusClass = 'warning';
+                statusIcon = '⚠️';
+            }
+            
+            resultDiv.innerHTML += `
+                <div class="status-card ${statusClass}">
+                    <h4>${statusIcon} ${title}</h4>
+                    <p><strong>Status:</strong> ${status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        async function testLogin() {
+            clearResults();
+            addResult('Login Test Started', 'Testing admin login with token capture...', { timestamp: new Date().toISOString() }, false, true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success && data.token) {
+                    authToken = data.token;
+                    
+                    // Simulate localStorage storage (like the fixed code does)
+                    localStorage.setItem('nxtbus_admin_token', data.token);
+                    localStorage.setItem('nxtbus_admin_session', JSON.stringify({
+                        timestamp: Date.now(),
+                        adminId: data.admin.id
+                    }));
+                    
+                    addResult('Admin Login Success', `${response.status} ${response.statusText}`, {
+                        admin: data.admin.name,
+                        tokenReceived: !!data.token,
+                        tokenLength: data.token.length,
+                        tokenPreview: data.token.substring(0, 20) + '...',
+                        expiresIn: data.expiresIn
+                    });
+                } else {
+                    addResult('Admin Login Failed', `${response.status} ${response.statusText}`, data, true);
+                }
+            } catch (error) {
+                addResult('Admin Login Error', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testAuthenticatedAPI() {
+            if (!authToken) {
+                addResult('Authentication Test', 'No Token Available', { error: 'Please login first to get token' }, true);
+                return;
+            }
+            
+            addResult('Testing Authenticated Endpoints', 'Using JWT token for admin endpoints...', { tokenUsed: authToken.substring(0, 20) + '...' }, false, true);
+            
+            const endpoints = [
+                { name: 'Admin Buses', url: '/admin/buses' },
+                { name: 'Admin Routes', url: '/admin/routes' },
+                { name: 'Admin Drivers', url: '/admin/drivers' }
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint.url}`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    let extraInfo = '';
+                    if (Array.isArray(data)) {
+                        extraInfo = ` - Found ${data.length} items`;
+                    }
+                    
+                    addResult(`${endpoint.name}${extraInfo}`, `${response.status} ${response.statusText}`, 
+                        Array.isArray(data) ? { count: data.length, sample: data[0] } : data, !response.ok);
+                } catch (error) {
+                    addResult(`${endpoint.name}`, 'Network Error', { error: error.message }, true);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+        
+        async function testDashboardStats() {
+            if (!authToken) {
+                addResult('Dashboard Stats Test', 'No Token Available', { error: 'Please login first to get token' }, true);
+                return;
+            }
+            
+            addResult('Testing Dashboard Stats API', 'This should return real database counts...', { note: 'No more hardcoded fallbacks' }, false, true);
+            
+            try {
+                // Test the dashboard stats endpoint that was returning hardcoded values
+                const response = await fetch(`${API_BASE}/admin/dashboard/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const stats = await response.json();
+                
+                if (response.ok) {
+                    // Check if these look like real values vs hardcoded ones
+                    const looksReal = stats.totalBuses !== 12 || stats.totalRoutes !== 6 || stats.totalDrivers !== 15;
+                    
+                    addResult('Dashboard Stats Retrieved', `${response.status} ${response.statusText}`, {
+                        stats: stats,
+                        analysis: {
+                            looksLikeRealData: looksReal,
+                            previousHardcodedValues: { buses: 12, routes: 6, drivers: 15 },
+                            currentValues: { 
+                                buses: stats.totalBuses, 
+                                routes: stats.totalRoutes, 
+                                drivers: stats.totalDrivers 
+                            }
+                        }
+                    }, false, !looksReal);
+                } else {
+                    addResult('Dashboard Stats Failed', `${response.status} ${response.statusText}`, stats, true);
+                }
+            } catch (error) {
+                addResult('Dashboard Stats Error', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // Auto-run login test on page load
+        window.onload = function() {
+            setTimeout(testLogin, 1000);
+        };
+    </script>
+</body>
+</html>

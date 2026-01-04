@@ -41,18 +41,48 @@ console.log('🔧 API Configuration:', {
   API_BASE
 });
 
+// ============ AUTHENTICATION HELPERS ============
+
+// Get admin token from localStorage
+function getAdminToken() {
+  const token = localStorage.getItem('nxtbus_admin_token');
+  const session = localStorage.getItem('nxtbus_admin_session');
+  
+  if (token && session) {
+    try {
+      const sessionData = JSON.parse(session);
+      // Session valid for 8 hours
+      if (Date.now() - sessionData.timestamp < 8 * 60 * 60 * 1000) {
+        return token;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 // ============ GENERIC API HELPERS ============
 
 async function fetchApi(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   console.log('🌐 API Call:', url, options);
   
+  // Add authentication header if admin token is available
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  const adminToken = getAdminToken();
+  if (adminToken) {
+    headers['Authorization'] = `Bearer ${adminToken}`;
+  }
+  
   try {
     const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
       ...options,
+      headers,
     });
     
     console.log('📡 API Response:', response.status, response.statusText);

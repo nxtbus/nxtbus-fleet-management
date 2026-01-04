@@ -24,47 +24,30 @@ function Dashboard({ onNavigate }) {
         getActiveDelays()
       ]);
       
-      // Ensure we have valid data with fallbacks
+      // Use real data from API, no fallbacks
       setStats({
-        totalBuses: statsData?.totalBuses || 12,
-        activeBuses: statsData?.activeBuses || 8,
-        totalRoutes: statsData?.totalRoutes || 6,
-        activeDelays: statsData?.activeDelays || 2,
-        totalDrivers: statsData?.totalDrivers || 15,
-        activeTrips: statsData?.activeTrips || 5
+        totalBuses: statsData?.totalBuses || 0,
+        activeBuses: statsData?.activeBuses || 0,
+        totalRoutes: statsData?.totalRoutes || 0,
+        activeDelays: statsData?.activeDelays || 0,
+        totalDrivers: statsData?.totalDrivers || 0,
+        activeTrips: statsData?.activeTrips || 0
       });
       
-      setDelays(delaysData || [
-        {
-          id: 1,
-          busNumber: 'B001',
-          delayMinutes: 15,
-          reason: 'Heavy traffic on Main Street',
-          autoDetected: true,
-          reportedAt: new Date().toISOString()
-        },
-        {
-          id: 2,
-          busNumber: 'B003',
-          delayMinutes: 8,
-          reason: 'Passenger boarding delay',
-          autoDetected: false,
-          reportedAt: new Date(Date.now() - 300000).toISOString()
-        }
-      ]);
+      setDelays(delaysData || []);
       
       setLastUpdate(new Date());
     } catch (err) {
       console.error('Failed to load dashboard:', err);
       setError('Failed to load dashboard data');
-      // Set fallback data even on error
+      // Set zeros on error instead of fake data
       setStats({
-        totalBuses: 12,
-        activeBuses: 8,
-        totalRoutes: 6,
-        activeDelays: 2,
-        totalDrivers: 15,
-        activeTrips: 5
+        totalBuses: 0,
+        activeBuses: 0,
+        totalRoutes: 0,
+        activeDelays: 0,
+        totalDrivers: 0,
+        activeTrips: 0
       });
     } finally {
       setLoading(false);
