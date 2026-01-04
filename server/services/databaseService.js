@@ -6,6 +6,52 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
+// Fallback data for when database is not available
+const getFallbackData = async () => {
+  const bcrypt = require('bcryptjs');
+  
+  return {
+    buses: [
+      { id: 'BUS001', number: '101A', type: 'AC', capacity: 40, status: 'active', ownerId: 'OWN001', assignedDrivers: ['DRV001', 'DRV003'], assignedRoutes: [], createdAt: '2024-01-15' },
+      { id: 'BUS002', number: '102B', type: 'Non-AC', capacity: 50, status: 'active', ownerId: 'OWN001', assignedDrivers: ['DRV001'], assignedRoutes: [], createdAt: '2024-01-20' },
+      { id: 'BUS003', number: '103C', type: 'AC', capacity: 40, status: 'maintenance', ownerId: 'OWN002', assignedDrivers: ['DRV002'], assignedRoutes: [], createdAt: '2024-02-01' }
+    ],
+    routes: [
+      {
+        id: 'ROUTE001', name: 'Central Station → Airport', startPoint: 'Central Station', endPoint: 'Airport Terminal',
+        startLat: 12.9716, startLon: 77.5946, endLat: 13.1989, endLon: 77.7068, estimatedDuration: 90, status: 'active',
+        stops: [
+          { id: 'S1', name: 'Central Station', lat: 12.9716, lon: 77.5946, order: 1, estimatedTime: 0 },
+          { id: 'S2', name: 'MG Road', lat: 13.0100, lon: 77.6000, order: 2, estimatedTime: 15 },
+          { id: 'S3', name: 'Indiranagar', lat: 13.0200, lon: 77.6400, order: 3, estimatedTime: 30 },
+          { id: 'S4', name: 'Whitefield', lat: 13.0500, lon: 77.7000, order: 4, estimatedTime: 55 },
+          { id: 'S5', name: 'Airport Terminal', lat: 13.1989, lon: 77.7068, order: 5, estimatedTime: 90 }
+        ]
+      }
+    ],
+    drivers: [
+      { id: 'DRV001', name: 'Rajesh Kumar', phone: '9876543210', password: await bcrypt.hash('1234', 10), status: 'active', assignedBuses: ['BUS001', 'BUS002'], lastLogin: null },
+      { id: 'DRV002', name: 'Suresh Patel', phone: '9876543211', password: await bcrypt.hash('5678', 10), status: 'active', assignedBuses: ['BUS003'], lastLogin: null },
+      { id: 'DRV003', name: 'Amit Singh', phone: '9876543212', password: await bcrypt.hash('9012', 10), status: 'active', assignedBuses: ['BUS001'], lastLogin: null }
+    ],
+    owners: [
+      { id: 'OWN001', name: 'Sharma Transport', email: 'sharma@transport.com', phone: '9876500001', password: await bcrypt.hash('1234', 10), address: 'Bangalore', status: 'active', createdAt: '2024-01-01', lastLogin: null },
+      { id: 'OWN002', name: 'Patel Bus Services', email: 'patel@busservices.com', phone: '9876500002', password: await bcrypt.hash('5678', 10), address: 'Mangalore', status: 'active', createdAt: '2024-01-10', lastLogin: null }
+    ],
+    admins: [
+      { id: 'ADM001', username: 'admin', password: await bcrypt.hash('admin123', 10), name: 'System Administrator', email: 'admin@nxtbus.com', role: 'admin', status: 'active', createdAt: '2024-01-01', lastLogin: null }
+    ],
+    activeTrips: [],
+    schedules: [],
+    notifications: [],
+    feedbacks: [],
+    delays: [],
+    callAlerts: []
+  };
+};
+
+let fallbackData = null;
+
 class DatabaseService {
   constructor() {
     console.log('🔗 Initializing database connection...');
@@ -14,9 +60,14 @@ class DatabaseService {
     
     if (!process.env.DATABASE_URL) {
       console.error('❌ DATABASE_URL environment variable is not set!');
-      throw new Error('DATABASE_URL environment variable is required');
+      console.error('⚠️ Running in fallback mode without database connection');
+      this.pool = null;
+      this.fallbackMode = true;
+      this.initializeFallbackData();
+      return;
     }
     
+    this.fallbackMode = false;
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
@@ -26,7 +77,20 @@ class DatabaseService {
     this.testConnection();
   }
 
+  async initializeFallbackData() {
+    if (!fallbackData) {
+      console.log('🔄 Initializing fallback data with hashed passwords...');
+      fallbackData = await getFallbackData();
+      console.log('✅ Fallback data initialized');
+    }
+  }
+
   async testConnection() {
+    if (this.fallbackMode) {
+      console.log('⚠️ Skipping database connection test - running in fallback mode');
+      return;
+    }
+    
     try {
       console.log('🔍 Testing database connection...');
       const client = await this.pool.connect();
@@ -39,6 +103,11 @@ class DatabaseService {
   }
 
   async query(text, params) {
+    if (this.fallbackMode) {
+      console.warn('⚠️ Database query attempted in fallback mode - returning empty result');
+      return { rows: [] };
+    }
+    
     const client = await this.pool.connect();
     try {
       const result = await client.query(text, params);
@@ -51,6 +120,12 @@ class DatabaseService {
   // ============ BUSES ============
   
   async getBuses() {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback data for buses');
+      return fallbackData.buses.filter(b => b.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM buses WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows;
   }
@@ -90,6 +165,11 @@ class DatabaseService {
   // ============ ROUTES ============
   
   async getRoutes() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for routes');
+      return fallbackData.routes.filter(r => r.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM routes WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows;
   }
@@ -134,6 +214,11 @@ class DatabaseService {
   // ============ ACTIVE TRIPS ============
   
   async getActiveTrips() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for active trips');
+      return fallbackData.activeTrips.filter(t => t.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM active_trips WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows.map(row => ({
       ...row,
@@ -213,6 +298,11 @@ class DatabaseService {
   // ============ SCHEDULES ============
   
   async getSchedules() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for schedules');
+      return fallbackData.schedules.filter(s => s.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM schedules WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows;
   }
@@ -231,6 +321,11 @@ class DatabaseService {
   // ============ NOTIFICATIONS ============
   
   async getNotifications() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for notifications');
+      return fallbackData.notifications.filter(n => n.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM notifications WHERE status = $1 ORDER BY sent_at DESC', ['active']);
     return result.rows;
   }
@@ -249,6 +344,11 @@ class DatabaseService {
   // ============ FEEDBACKS ============
   
   async getFeedbacks() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for feedbacks');
+      return fallbackData.feedbacks;
+    }
+    
     const result = await this.query('SELECT * FROM feedbacks ORDER BY submitted_at DESC');
     return result.rows;
   }
@@ -267,6 +367,11 @@ class DatabaseService {
   // ============ DELAYS ============
   
   async getDelays() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for delays');
+      return fallbackData.delays.filter(d => d.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM delays WHERE status = $1 ORDER BY reported_at DESC', ['active']);
     return result.rows;
   }
@@ -285,6 +390,11 @@ class DatabaseService {
   // ============ CALL ALERTS ============
   
   async getCallAlerts() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for call alerts');
+      return fallbackData.callAlerts.filter(c => c.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM call_alerts WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows;
   }
@@ -303,6 +413,11 @@ class DatabaseService {
   // ============ OWNERS ============
   
   async getOwners() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for owners');
+      return fallbackData.owners.filter(o => o.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM owners WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows;
   }
@@ -342,6 +457,11 @@ class DatabaseService {
   // ============ DRIVERS ============
   
   async getDrivers() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for drivers');
+      return fallbackData.drivers.filter(d => d.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM drivers WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows;
   }
@@ -381,6 +501,11 @@ class DatabaseService {
   // ============ ADMINS ============
   
   async getAdmins() {
+    if (this.fallbackMode) {
+      console.log('📦 Using fallback data for admins');
+      return fallbackData.admins.filter(a => a.status === 'active');
+    }
+    
     const result = await this.query('SELECT * FROM admins WHERE status = $1 ORDER BY created_at DESC', ['active']);
     return result.rows;
   }
@@ -391,6 +516,13 @@ class DatabaseService {
   }
 
   async getAdminByUsername(username) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback data for admin authentication');
+      const admin = fallbackData.admins.find(a => a.username === username);
+      return admin || null;
+    }
+    
     const result = await this.query('SELECT * FROM admins WHERE username = $1', [username]);
     return result.rows[0];
   }
