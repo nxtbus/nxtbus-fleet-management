@@ -196,7 +196,7 @@ export async function getDriverById(id) {
 }
 
 export async function getDriverByPhone(phone) {
-  const drivers = await getAll('drivers');
+  const drivers = await fetchApi('/admin/drivers');
   return drivers.find(d => d.phone === phone);
 }
 
@@ -244,7 +244,9 @@ export async function deleteDriver(id) {
 // ============ SCHEDULES ============
 
 export async function getSchedules() {
-  return getAll('schedules');
+  // No public schedules endpoint, return empty array
+  console.warn('Schedules endpoint not available, returning empty data');
+  return [];
 }
 
 export async function addSchedule(scheduleData) {
@@ -263,7 +265,7 @@ export async function deleteSchedule(id) {
 }
 
 export async function getActiveSchedules() {
-  const schedules = await getAll('schedules');
+  const schedules = await getSchedules();
   const now = new Date();
   const currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
   const currentTime = now.toTimeString().slice(0, 5);
@@ -278,11 +280,13 @@ export async function getActiveSchedules() {
     return currentTime >= s.startTime && currentTime <= s.endTime;
   });
 }
+  });
+}
 
 // ============ ACTIVE TRIPS ============
 
 export async function getActiveTrips() {
-  const trips = await getAll('activeTrips');
+  const trips = await fetchApi('/trips/active');
   const now = Date.now();
   // Filter out stale trips (no update in last 10 minutes)
   // This ensures only actively running trips are shown
@@ -298,7 +302,7 @@ export async function getActiveTrips() {
 }
 
 export async function startTrip(tripData) {
-  const trips = await getAll('activeTrips');
+  const trips = await getActiveTrips();
   
   // Check if there's already an active trip for this bus
   const existingTrip = trips.find(t => t.busId === tripData.busId);
@@ -307,11 +311,14 @@ export async function startTrip(tripData) {
     return existingTrip;
   }
   
-  return create('activeTrips', {
-    ...tripData,
-    tripId: tripData.tripId || `TRIP_${Date.now()}`,
-    startTime: new Date().toISOString(),
-    lastUpdate: Date.now()
+  return fetchApi('/driver/trips/start', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...tripData,
+      tripId: tripData.tripId || `TRIP_${Date.now()}`,
+      startTime: new Date().toISOString(),
+      lastUpdate: Date.now()
+    })
   });
 }
 
@@ -340,11 +347,17 @@ export async function endTrip(tripId) {
 // ============ DELAYS ============
 
 export async function getDelays() {
-  return getAll('delays');
+  try {
+    return await fetchApi('/admin/delays');
+  } catch (error) {
+    // If admin endpoint fails (not authenticated), return empty array
+    console.warn('Admin delays endpoint not accessible, returning empty data');
+    return [];
+  }
 }
 
 export async function getActiveDelays() {
-  const delays = await getAll('delays');
+  const delays = await getDelays();
   return delays.filter(d => d.status === 'active');
 }
 
@@ -367,7 +380,7 @@ export async function deleteDelay(id) {
 // ============ NOTIFICATIONS ============
 
 export async function getNotifications() {
-  const notifications = await getAll('notifications');
+  const notifications = await fetchApi('/notifications');
   return notifications.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
 }
 
@@ -386,11 +399,10 @@ export async function deleteNotification(id) {
 // ============ FEEDBACKS ============
 
 export async function getFeedbacks(filters = {}) {
-  let feedbacks = await getAll('feedbacks');
-  
-  if (filters.category) feedbacks = feedbacks.filter(f => f.category === filters.category);
-  if (filters.status) feedbacks = feedbacks.filter(f => f.status === filters.status);
-  if (filters.busNumber) feedbacks = feedbacks.filter(f => f.busNumber === filters.busNumber);
+  // No public GET endpoint for feedbacks, return empty array
+  console.warn('Feedbacks GET endpoint not available, returning empty data');
+  return [];
+}
   
   return feedbacks.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
@@ -410,32 +422,64 @@ export async function updateFeedbackStatus(id, status) {
 // ============ DASHBOARD ============
 
 export async function getDashboardStats() {
-  const [buses, routes, delays, feedbacks, drivers, activeTrips] = await Promise.all([
-    getAll('buses'),
-    getAll('routes'),
-    getAll('delays'),
-    getAll('feedbacks'),
-    getAll('drivers'),
-    getActiveTrips()
-  ]);
-  
-  return {
-    totalBuses: buses.length,
-    activeBuses: buses.filter(b => b.status === 'active').length,
-    totalRoutes: routes.length,
-    activeDelays: delays.filter(d => d.status === 'active').length,
-    pendingFeedback: feedbacks.filter(f => f.status === 'pending').length,
-    totalDrivers: drivers.length,
-    activeTrips: activeTrips.length
-  };
+  try {
+    const [buses, routes, delays, feedbacks, drivers, activeTrips] = await Promise.all([
+      fetchApi('/admin/buses').catch(() => []),
+      fetchApi('/admin/routes').catch(() => []),
+      getDelays(),
+      getFeedbacks(),
+      fetchApi('/admin/drivers').catch(() => []),
+      getActiveTrips()
+    ]);
+    
+    return {
+      totalBuses: buses.length,
+      activeBuses: buses.filter(b => b.status === 'active').length,
+      totalRoutes: routes.length,
+      activeDelays: delays.filter(d => d.status === 'active').length,
+      pendingFeedback: feedbacks.filter(f => f.status === 'pending').length,
+      totalDrivers: drivers.length,
+      activeTrips: activeTrips.length
+    };
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    return {
+      totalBuses: 0,
+      activeBuses: 0,
+      totalRoutes: 0,
+      activeDelays: 0,
+      pendingFeedback: 0,
+      totalDrivers: 0,
+      activeTrips: 0
+    };
+  }
 }
 
 // ============ LOCATIONS ============
 
 export async function getLocations() {
-  const [routes, schedules] = await Promise.all([
-    getAll('routes'),
-    getAll('schedules')
+  try {
+    const [routes, schedules] = await Promise.all([
+      fetchApi('/admin/routes').catch(() => []),
+      getSchedules()
+    ]);
+    
+    const locations = new Set();
+    
+    routes.forEach(route => {
+      if (route.startPoint) locations.add(route.startPoint);
+      if (route.endPoint) locations.add(route.endPoint);
+      if (route.stops) {
+        route.stops.forEach(stop => locations.add(stop.name));
+      }
+    });
+    
+    return Array.from(locations).sort();
+  } catch (error) {
+    console.error('Locations error:', error);
+    return [];
+  }
+}
   ]);
   
   // Get route IDs that have active schedules
