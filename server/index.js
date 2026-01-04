@@ -362,8 +362,8 @@ async function startServer() {
     console.log(`✅ Database connected - ${buses.length} buses found`);
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    console.error('Please check your DATABASE_URL in .env file');
-    process.exit(1);
+    console.error('⚠️ Server will continue without database - using fallback mode');
+    // Don't exit - continue with fallback mode
   }
 
 // ============ OAUTH & API KEY AUTHENTICATION ============
