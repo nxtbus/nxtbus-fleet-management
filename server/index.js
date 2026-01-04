@@ -16,7 +16,8 @@ const { authenticate, authorize, handleValidationErrors, securityHeaders } = req
 // Conditionally import rate limiting middleware only if enabled
 let dynamicRateLimit, authRateLimit, gpsRateLimit, feedbackRateLimit, apiKeyRateLimit, websocketRateLimit, helmet, requestSizeLimits, suspiciousActivityDetection, corsOptions, securityMonitoring, checkBruteForce;
 
-if (process.env.ENABLE_RATE_LIMITING !== 'false') {
+if (process.env.ENABLE_RATE_LIMITING === 'true') {
+  console.log('🔒 Rate limiting enabled - importing security middleware');
   const rateLimitingModule = require('./middleware/enhancedSecurity');
   ({
     dynamicRateLimit,
@@ -33,6 +34,7 @@ if (process.env.ENABLE_RATE_LIMITING !== 'false') {
     checkBruteForce
   } = rateLimitingModule);
 } else {
+  console.log('⚠️ Rate limiting disabled - using minimal security middleware');
   // Provide minimal implementations when rate limiting is disabled
   const cors = require('cors');
   corsOptions = {
@@ -48,6 +50,11 @@ if (process.env.ENABLE_RATE_LIMITING !== 'false') {
   securityMonitoring = (req, res, next) => next();
   checkBruteForce = () => (req, res, next) => next();
   authRateLimit = (req, res, next) => next();
+  gpsRateLimit = (req, res, next) => next();
+  feedbackRateLimit = (req, res, next) => next();
+  apiKeyRateLimit = (req, res, next) => next();
+  websocketRateLimit = (req, res, next) => next();
+}
   gpsRateLimit = (req, res, next) => next();
   feedbackRateLimit = (req, res, next) => next();
   apiKeyRateLimit = (req, res, next) => next();
@@ -117,10 +124,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(requestLogger);
 
 // Rate limiting with dynamic tiers
-if (process.env.ENABLE_RATE_LIMITING !== 'false') {
-  // Temporarily disabled due to IPv6 configuration issue
-  // app.use('/api/', dynamicRateLimit);
-  console.log('⚠️ Rate limiting temporarily disabled');
+if (process.env.ENABLE_RATE_LIMITING === 'true') {
+  app.use('/api/', dynamicRateLimit);
+  console.log('🔒 Rate limiting enabled for /api/ routes');
 } else {
   console.log('⚠️ Rate limiting disabled via environment variable');
 }

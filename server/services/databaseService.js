@@ -8,6 +8,15 @@ const { Pool } = require('pg');
 
 class DatabaseService {
   constructor() {
+    console.log('🔗 Initializing database connection...');
+    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ DATABASE_URL environment variable is not set!');
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+    
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
@@ -19,11 +28,13 @@ class DatabaseService {
 
   async testConnection() {
     try {
+      console.log('🔍 Testing database connection...');
       const client = await this.pool.connect();
       console.log('✅ Database connected successfully');
       client.release();
     } catch (error) {
       console.error('❌ Database connection failed:', error.message);
+      console.error('Full error:', error);
     }
   }
 
