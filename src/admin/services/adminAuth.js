@@ -3,8 +3,21 @@
  * Manages admin login with username and password
  */
 
-const HOST = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
-const API_BASE = `http://${HOST}:3001/api`;
+// Get API base URL - use production backend for deployed apps
+function getAPIBase() {
+  // Local development
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:3001/api';
+  }
+  
+  // Production: use Render backend URL
+  return 'https://nxtbus-backend.onrender.com/api';
+}
+
+const API_BASE = getAPIBase();
+
+console.log('Admin Auth Service - API Base URL:', API_BASE);
+console.log('Admin Auth Service - Detected Host:', window.location.hostname);
 
 // Store current admin in localStorage
 const ADMIN_KEY = 'nxtbus_current_admin';

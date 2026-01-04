@@ -145,7 +145,18 @@ export async function resetAllData() {
 
 // ============ OWNER MANAGEMENT ============
 
-const API_BASE = `http://${window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname}:3001/api`;
+// Get API base URL - use production backend for deployed apps
+function getAPIBase() {
+  // Local development
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:3001/api';
+  }
+  
+  // Production: use Render backend URL
+  return 'https://nxtbus-backend.onrender.com/api';
+}
+
+const API_BASE = getAPIBase();
 
 export async function getOwners() {
   const res = await fetch(`${API_BASE}/owners`);

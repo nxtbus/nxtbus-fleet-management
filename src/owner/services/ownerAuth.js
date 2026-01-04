@@ -3,26 +3,27 @@
  * Manages owner login with phone and PIN
  */
 
-// API Base URL - Auto-detect environment
-const getHost = () => {
+// Get API base URL - use production backend for deployed apps
+function getAPIBase() {
   // If running in Capacitor (mobile app), use network IP
   if (window.Capacitor?.isNativePlatform()) {
-    return '10.77.155.222';
+    return 'http://10.77.155.222:3001/api';
   }
-  // If accessing from browser on same network
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return window.location.hostname;
+  
+  // Local development
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:3001/api';
   }
-  // Default to localhost for local development
-  return 'localhost';
-};
+  
+  // Production: use Render backend URL
+  return 'https://nxtbus-backend.onrender.com/api';
+}
 
-const HOST = getHost();
-const API_BASE = `http://${HOST}:3001/api`;
+const API_BASE = getAPIBase();
 
 // Debug logging
 console.log('Owner Auth Service - API Base URL:', API_BASE);
-console.log('Owner Auth Service - Detected Host:', HOST);
+console.log('Owner Auth Service - Detected Host:', window.location.hostname);
 console.log('Owner Auth Service - Window Location:', window.location.hostname);
 
 // Store current owner in localStorage
