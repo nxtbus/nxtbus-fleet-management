@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Token Debug Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Issue Analysis</h3>
+        <p><strong>Problem:</strong> Frontend API calls return 401 "Access denied. No token provided"</p>
+        <p><strong>Backend:</strong> Working correctly (server logs show successful auth)</p>
+        <p><strong>Hypothesis:</strong> JWT token not being saved or sent by frontend</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 Debug Tests</h3>
+        <button onclick="checkLocalStorage()">1. Check localStorage</button>
+        <button onclick="testLogin()">2. Test Login & Save Token</button>
+        <button onclick="testAPIWithToken()">3. Test API with Token</button>
+        <button onclick="clearStorage()">4. Clear Storage</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        
+        function addResult(title, status, data, isError = false) {
+            const resultDiv = document.getElementById('results');
+            const statusClass = isError ? 'error' : 'success';
+            const statusIcon = isError ? '❌' : '✅';
+            
+            resultDiv.innerHTML += `
+                <div class="${statusClass}" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                    <h4>${statusIcon} ${title}</h4>
+                    <p><strong>Status:</strong> ${status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        function checkLocalStorage() {
+            const token = localStorage.getItem('nxtbus_admin_token');
+            const session = localStorage.getItem('nxtbus_admin_session');
+            const admin = localStorage.getItem('nxtbus_current_admin');
+            
+            const storageData = {
+                hasToken: !!token,
+                tokenPreview: token ? token.substring(0, 30) + '...' : null,
+                hasSession: !!session,
+                sessionData: session ? JSON.parse(session) : null,
+                hasAdmin: !!admin,
+                adminData: admin ? JSON.parse(admin) : null
+            };
+            
+            addResult('localStorage Check', 'Current storage state', storageData, !token);
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success && data.token) {
+                    // Manually save token like the frontend should
+                    localStorage.setItem('nxtbus_admin_token', data.token);
+                    localStorage.setItem('nxtbus_current_admin', JSON.stringify(data.admin));
+                    localStorage.setItem('nxtbus_admin_session', JSON.stringify({
+                        timestamp: Date.now(),
+                        adminId: data.admin.id
+                    }));
+                    
+                    addResult('Login & Token Save', `${response.status} ${response.statusText}`, {
+                        loginSuccess: true,
+                        tokenReceived: !!data.token,
+                        tokenSaved: !!localStorage.getItem('nxtbus_admin_token'),
+                        tokenLength: data.token.length,
+                        admin: data.admin.name
+                    });
+                } else {
+                    addResult('Login Failed', `${response.status} ${response.statusText}`, data, true);
+                }
+            } catch (error) {
+                addResult('Login Error', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testAPIWithToken() {
+            const token = localStorage.getItem('nxtbus_admin_token');
+            
+            if (!token) {
+                addResult('API Test', 'No Token Found', { error: 'Please login first' }, true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/buses`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                addResult('API Test with Token', `${response.status} ${response.statusText}`, {
+                    success: response.ok,
+                    tokenUsed: token.substring(0, 30) + '...',
+                    dataReceived: Array.isArray(data) ? `${data.length} items` : 'Not array',
+                    response: data
+                }, !response.ok);
+            } catch (error) {
+                addResult('API Test Error', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('nxtbus_admin_token');
+            localStorage.removeItem('nxtbus_admin_session');
+            localStorage.removeItem('nxtbus_current_admin');
+            
+            addResult('Storage Cleared', 'All tokens and session data removed', {
+                tokensCleared: true
+            });
+        }
+        
+        // Auto-check storage on load
+        window.onload = function() {
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

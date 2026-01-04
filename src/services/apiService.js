@@ -38,7 +38,8 @@ const API_BASE = getAPIBase();
 console.log('🔧 API Configuration:', {
   isCapacitor: window.Capacitor?.isNativePlatform(),
   hostname: window.location.hostname,
-  API_BASE
+  API_BASE,
+  timestamp: new Date().toISOString()
 });
 
 // ============ AUTHENTICATION HELPERS ============
