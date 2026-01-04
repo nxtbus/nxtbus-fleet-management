@@ -846,6 +846,26 @@ app.get('/api/admin/dashboard/stats',
   })
 );
 
+// Test endpoint without authentication to isolate the issue
+app.get('/api/test/buses-no-auth',
+  asyncHandler(async (req, res) => {
+    try {
+      console.log('🧪 Testing buses endpoint without authentication');
+      const buses = await db.getBuses();
+      console.log('✅ Test buses retrieved:', buses.length);
+      res.json({ success: true, count: buses.length, data: buses });
+    } catch (error) {
+      console.error('❌ Test buses endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Test failed',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  })
+);
+
 // Bus management
 app.get('/api/admin/buses',
   asyncHandler(async (req, res) => {

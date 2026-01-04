@@ -146,29 +146,50 @@ function authenticate(req, res, next) {
  */
 function authorize(...allowedRoles) {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required.',
-        code: 'AUTH_REQUIRED'
-      });
-    }
-    
-    if (!allowedRoles.includes(req.user.role)) {
-      logger.warn('Authorization failed: Insufficient permissions', {
-        userId: req.user.id,
-        userRole: req.user.role,
-        requiredRoles: allowedRoles,
+    try {
+      console.log('🔐 Authorization check:', {
+        user: req.user,
+        allowedRoles,
         path: req.path
       });
-      return res.status(403).json({
+      
+      if (!req.user) {
+        console.log('❌ Authorization failed: No user in request');
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required.',
+          code: 'AUTH_REQUIRED'
+        });
+      }
+      
+      if (!allowedRoles.includes(req.user.role)) {
+        console.log('❌ Authorization failed: Role mismatch', {
+          userRole: req.user.role,
+          allowedRoles
+        });
+        logger.warn('Authorization failed: Insufficient permissions', {
+          userId: req.user.id,
+          userRole: req.user.role,
+          requiredRoles: allowedRoles,
+          path: req.path
+        });
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Insufficient permissions.',
+          code: 'INSUFFICIENT_PERMISSIONS'
+        });
+      }
+      
+      console.log('✅ Authorization successful for user:', req.user.id, 'role:', req.user.role);
+      next();
+    } catch (error) {
+      console.error('❌ Authorization middleware error:', error);
+      return res.status(500).json({
         success: false,
-        message: 'Access denied. Insufficient permissions.',
-        code: 'INSUFFICIENT_PERMISSIONS'
+        message: 'Authorization error occurred.',
+        code: 'AUTHZ_ERROR'
       });
     }
-    
-    next();
   };
 }
 
