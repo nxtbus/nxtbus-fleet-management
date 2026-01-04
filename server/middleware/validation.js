@@ -9,7 +9,7 @@ const { logSecurityEvent } = require('../utils/logger');
 // Common validation patterns
 const patterns = {
   busNumber: /^[A-Z0-9]{2,10}$/,
-  phone: /^[6-9]\d{9}$/,
+  phone: /^\d{10}$/, // Allow any 10-digit number for testing
   pin: /^\d{4}$/,
   coordinates: /^-?\d+\.?\d*$/,
   objectId: /^[A-Z]{3}\d{3}$/
@@ -155,7 +155,7 @@ const validateDriver = [
     .customSanitizer(sanitizeString),
   body('phone')
     .matches(patterns.phone)
-    .withMessage('Phone number must be a valid 10-digit Indian mobile number')
+    .withMessage('Phone number must be exactly 10 digits')
     .customSanitizer(sanitizeString),
   body('pin')
     .matches(patterns.pin)

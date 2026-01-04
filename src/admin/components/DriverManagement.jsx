@@ -45,7 +45,9 @@ function DriverManagement() {
       await loadData();
       resetForm();
     } catch (err) {
-      alert('Failed to save driver');
+      console.error('Driver save error:', err);
+      const errorMessage = err.message || err.error || 'Failed to save driver';
+      alert(`Error: ${errorMessage}`);
     }
   };
 
