@@ -121,7 +121,7 @@ async function remove(collection, id) {
 // ============ BUSES ============
 
 export async function getBuses() {
-  return getAll('buses');
+  return fetchApi('/admin/buses');
 }
 
 export async function getBusById(id) {
@@ -129,26 +129,34 @@ export async function getBusById(id) {
 }
 
 export async function addBus(busData) {
-  return create('buses', {
-    ...busData,
-    createdAt: new Date().toISOString().split('T')[0],
-    assignedDrivers: busData.assignedDrivers || [],
-    assignedRoutes: busData.assignedRoutes || []
+  return fetchApi('/admin/buses', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...busData,
+      createdAt: new Date().toISOString().split('T')[0],
+      assignedDrivers: busData.assignedDrivers || [],
+      assignedRoutes: busData.assignedRoutes || []
+    })
   });
 }
 
 export async function updateBus(id, updates) {
-  return update('buses', id, updates);
+  return fetchApi(`/admin/buses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
 }
 
 export async function deleteBus(id) {
-  return remove('buses', id);
+  return fetchApi(`/admin/buses/${id}`, {
+    method: 'DELETE'
+  });
 }
 
 // ============ ROUTES ============
 
 export async function getRoutes() {
-  return getAll('routes');
+  return fetchApi('/admin/routes');
 }
 
 export async function getRouteById(id) {
@@ -156,15 +164,21 @@ export async function getRouteById(id) {
 }
 
 export async function addRoute(routeData) {
-  return create('routes', {
-    ...routeData,
-    status: 'active',
-    stops: routeData.stops || []
+  return fetchApi('/admin/routes', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...routeData,
+      status: 'active',
+      stops: routeData.stops || []
+    })
   });
 }
 
 export async function updateRoute(id, updates) {
-  return update('routes', id, updates);
+  return fetchApi(`/admin/routes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
 }
 
 export async function deleteRoute(id) {
@@ -174,7 +188,7 @@ export async function deleteRoute(id) {
 // ============ DRIVERS ============
 
 export async function getDrivers() {
-  return getAll('drivers');
+  return fetchApi('/admin/drivers');
 }
 
 export async function getDriverById(id) {
@@ -204,19 +218,27 @@ export async function authenticateDriver(phone, pin) {
 }
 
 export async function addDriver(driverData) {
-  return create('drivers', {
-    ...driverData,
-    status: 'active',
-    assignedBuses: driverData.assignedBuses || []
+  return fetchApi('/admin/drivers', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...driverData,
+      status: 'active',
+      assignedBuses: driverData.assignedBuses || []
+    })
   });
 }
 
 export async function updateDriver(id, updates) {
-  return update('drivers', id, updates);
+  return fetchApi(`/admin/drivers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
 }
 
 export async function deleteDriver(id) {
-  return remove('drivers', id);
+  return fetchApi(`/admin/drivers/${id}`, {
+    method: 'DELETE'
+  });
 }
 
 // ============ SCHEDULES ============
