@@ -92,9 +92,8 @@ function authenticate(req, res, next) {
     const token = extractToken(req);
     
     if (!token) {
-      logger.warn('Authentication failed: No token provided', {
+      console.warn('Authentication failed: No token provided', {
         ip: req.ip,
-        userAgent: req.get('User-Agent'),
         path: req.path
       });
       return res.status(401).json({
@@ -106,9 +105,8 @@ function authenticate(req, res, next) {
     
     const decoded = verifyToken(token);
     if (!decoded) {
-      logger.warn('Authentication failed: Invalid token', {
+      console.warn('Authentication failed: Invalid token', {
         ip: req.ip,
-        userAgent: req.get('User-Agent'),
         path: req.path,
         tokenPreview: token.substring(0, 20) + '...'
       });
@@ -124,7 +122,7 @@ function authenticate(req, res, next) {
     req.userId = decoded.id;
     req.userRole = decoded.role;
     
-    logger.debug('User authenticated successfully', {
+    console.log('User authenticated successfully', {
       userId: decoded.id,
       role: decoded.role,
       path: req.path
@@ -132,11 +130,12 @@ function authenticate(req, res, next) {
     
     next();
   } catch (error) {
-    logger.error('Authentication middleware error:', error);
+    console.error('Authentication middleware error:', error);
     return res.status(500).json({
       success: false,
       message: 'Authentication error occurred.',
-      code: 'AUTH_ERROR'
+      code: 'AUTH_ERROR',
+      error: error.message
     });
   }
 }
@@ -167,7 +166,7 @@ function authorize(...allowedRoles) {
           userRole: req.user.role,
           allowedRoles
         });
-        logger.warn('Authorization failed: Insufficient permissions', {
+        console.warn('Authorization failed: Insufficient permissions', {
           userId: req.user.id,
           userRole: req.user.role,
           requiredRoles: allowedRoles,
