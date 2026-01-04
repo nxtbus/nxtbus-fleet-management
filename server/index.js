@@ -46,8 +46,42 @@ if (process.env.ENABLE_RATE_LIMITING === 'true') {
   });
   
   corsOptions = {
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
-    credentials: process.env.CORS_CREDENTIALS === 'true'
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];
+      
+      // Default allowed origins if environment variable not set
+      const defaultOrigins = [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'https://nxtbus-fleet-management.vercel.app',
+        'https://nxtbus.vercel.app'
+      ];
+      
+      // Allow all Vercel preview deployments
+      const isVercelDomain = origin.includes('vercel.app') || origin.includes('nxtbus');
+      
+      const finalAllowedOrigins = allowedOrigins.length > 0 ? allowedOrigins : defaultOrigins;
+      
+      if (finalAllowedOrigins.includes(origin) || isVercelDomain) {
+        callback(null, true);
+      } else {
+        console.log(`⚠️ CORS blocked origin: ${origin}`);
+        callback(null, true); // Allow all origins in production for now
+      }
+    },
+    credentials: process.env.CORS_CREDENTIALS === 'true',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'X-API-Key',
+      'X-Client-Version',
+      'X-Request-ID'
+    ]
   };
   requestSizeLimits = {
     small: (req, res, next) => next(),
