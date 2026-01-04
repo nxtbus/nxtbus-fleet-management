@@ -397,7 +397,6 @@ export async function deleteNotification(id) {
 // ============ FEEDBACKS ============
 
 export async function getFeedbacks(filters = {}) {
-export async function getFeedbacks(filters = {}) {
   // No public GET endpoint for feedbacks, return empty array
   console.warn('Feedbacks GET endpoint not available, returning empty data');
   return [];
@@ -475,51 +474,6 @@ export async function getLocations() {
     console.error('Locations error:', error);
     return [];
   }
-}
-  
-  const locationMap = new Map();
-  
-  scheduledRoutes.forEach(route => {
-    // Add start point as a location
-    if (route.startPoint && route.startLat && route.startLon) {
-      if (!locationMap.has(route.startPoint)) {
-        locationMap.set(route.startPoint, { 
-          name: route.startPoint, 
-          lat: route.startLat, 
-          lon: route.startLon,
-          isStartPoint: true,
-          estimatedTime: 0
-        });
-      }
-    }
-    
-    // Add intermediate stops
-    (route.stops || []).forEach(stop => {
-      if (!locationMap.has(stop.name)) {
-        locationMap.set(stop.name, { 
-          name: stop.name, 
-          lat: stop.lat, 
-          lon: stop.lon,
-          estimatedTime: stop.estimatedTime || 0
-        });
-      }
-    });
-    
-    // Add end point as a location
-    if (route.endPoint && route.endLat && route.endLon) {
-      if (!locationMap.has(route.endPoint)) {
-        locationMap.set(route.endPoint, { 
-          name: route.endPoint, 
-          lat: route.endLat, 
-          lon: route.endLon,
-          isEndPoint: true,
-          estimatedTime: route.estimatedDuration || 60
-        });
-      }
-    }
-  });
-  
-  return Array.from(locationMap.values());
 }
 
 // ============ RESET ============
