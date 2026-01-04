@@ -849,8 +849,19 @@ app.get('/api/admin/dashboard/stats',
 // Bus management
 app.get('/api/admin/buses',
   asyncHandler(async (req, res) => {
-    const buses = await db.getBuses();
-    res.json(buses);
+    try {
+      console.log('🔍 Admin buses endpoint called by user:', req.user?.id, req.user?.role);
+      const buses = await db.getBuses();
+      console.log('✅ Admin buses retrieved:', buses.length);
+      res.json(buses);
+    } catch (error) {
+      console.error('❌ Admin buses endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve buses',
+        error: error.message
+      });
+    }
   })
 );
 
@@ -918,8 +929,19 @@ app.delete('/api/admin/buses/:id',
 // Route management
 app.get('/api/admin/routes',
   asyncHandler(async (req, res) => {
-    const routes = await db.getRoutes();
-    res.json(routes);
+    try {
+      console.log('🔍 Admin routes endpoint called by user:', req.user?.id, req.user?.role);
+      const routes = await db.getRoutes();
+      console.log('✅ Admin routes retrieved:', routes.length);
+      res.json(routes);
+    } catch (error) {
+      console.error('❌ Admin routes endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve routes',
+        error: error.message
+      });
+    }
   })
 );
 
@@ -993,10 +1015,21 @@ app.delete('/api/admin/routes/:id',
 // Driver management
 app.get('/api/admin/drivers',
   asyncHandler(async (req, res) => {
-    const drivers = await db.getDrivers();
-    // Remove PINs from response
-    const safeDrivers = drivers.map(({ pin, password, ...driver }) => driver);
-    res.json(safeDrivers);
+    try {
+      console.log('🔍 Admin drivers endpoint called by user:', req.user?.id, req.user?.role);
+      const drivers = await db.getDrivers();
+      console.log('✅ Admin drivers retrieved:', drivers.length);
+      // Remove PINs from response
+      const safeDrivers = drivers.map(({ pin, password, ...driver }) => driver);
+      res.json(safeDrivers);
+    } catch (error) {
+      console.error('❌ Admin drivers endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve drivers',
+        error: error.message
+      });
+    }
   })
 );
 

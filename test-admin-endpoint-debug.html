@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Endpoint Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Admin Endpoint 500 Error Debug</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Issue Analysis</h3>
+        <p><strong>Problem:</strong> Admin endpoints returning 500 errors despite valid authentication</p>
+        <p><strong>Working:</strong> Public endpoints (/api/buses) return 200 OK</p>
+        <p><strong>Failing:</strong> Admin endpoints (/api/admin/buses) return 500 errors</p>
+        <p><strong>Database:</strong> Connected successfully (5 buses, 3 routes found)</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 Debug Tests</h3>
+        <button onclick="testLogin()">1. Get Valid Token</button>
+        <button onclick="testPublicEndpoint()">2. Test Public Endpoint</button>
+        <button onclick="testAdminEndpoint()">3. Test Admin Endpoint</button>
+        <button onclick="testDashboardStats()">4. Test Dashboard Stats</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        let authToken = null;
+        
+        function addResult(title, status, data, isError = false) {
+            const resultDiv = document.getElementById('results');
+            const statusClass = isError ? 'error' : 'success';
+            const statusIcon = isError ? '❌' : '✅';
+            
+            resultDiv.innerHTML += `
+                <div class="${statusClass}" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                    <h4>${statusIcon} ${title}</h4>
+                    <p><strong>Status:</strong> ${status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success && data.token) {
+                    authToken = data.token;
+                    addResult('Admin Login Success', `${response.status} ${response.statusText}`, {
+                        admin: data.admin.name,
+                        tokenReceived: true,
+                        tokenLength: data.token.length,
+                        tokenPreview: data.token.substring(0, 30) + '...'
+                    });
+                } else {
+                    addResult('Admin Login Failed', `${response.status} ${response.statusText}`, data, true);
+                }
+            } catch (error) {
+                addResult('Admin Login Error', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testPublicEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/buses`);
+                const data = await response.json();
+                
+                addResult('Public Buses Endpoint', `${response.status} ${response.statusText}`, {
+                    success: response.ok,
+                    dataCount: Array.isArray(data) ? data.length : 'Not array',
+                    sample: Array.isArray(data) && data.length > 0 ? data[0] : null
+                }, !response.ok);
+            } catch (error) {
+                addResult('Public Buses Endpoint', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testAdminEndpoint() {
+            if (!authToken) {
+                addResult('Admin Endpoint Test', 'No Token', { error: 'Please login first' }, true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/buses`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    data = { error: 'Failed to parse JSON response', rawResponse: await response.text() };
+                }
+                
+                addResult('Admin Buses Endpoint', `${response.status} ${response.statusText}`, {
+                    success: response.ok,
+                    data: data,
+                    headers: Object.fromEntries(response.headers.entries())
+                }, !response.ok);
+            } catch (error) {
+                addResult('Admin Buses Endpoint', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testDashboardStats() {
+            if (!authToken) {
+                addResult('Dashboard Stats Test', 'No Token', { error: 'Please login first' }, true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/dashboard/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    data = { error: 'Failed to parse JSON response', rawResponse: await response.text() };
+                }
+                
+                addResult('Dashboard Stats Endpoint', `${response.status} ${response.statusText}`, {
+                    success: response.ok,
+                    data: data
+                }, !response.ok);
+            } catch (error) {
+                addResult('Dashboard Stats Endpoint', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

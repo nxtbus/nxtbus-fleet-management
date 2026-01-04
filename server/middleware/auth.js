@@ -88,47 +88,57 @@ function extractToken(req) {
  * Authentication middleware
  */
 function authenticate(req, res, next) {
-  const token = extractToken(req);
-  
-  if (!token) {
-    logger.warn('Authentication failed: No token provided', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
+  try {
+    const token = extractToken(req);
+    
+    if (!token) {
+      logger.warn('Authentication failed: No token provided', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No token provided.',
+        code: 'NO_TOKEN'
+      });
+    }
+    
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      logger.warn('Authentication failed: Invalid token', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+        tokenPreview: token.substring(0, 20) + '...'
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. Invalid token.',
+        code: 'INVALID_TOKEN'
+      });
+    }
+    
+    // Add user info to request
+    req.user = decoded;
+    req.userId = decoded.id;
+    req.userRole = decoded.role;
+    
+    logger.debug('User authenticated successfully', {
+      userId: decoded.id,
+      role: decoded.role,
       path: req.path
     });
-    return res.status(401).json({
+    
+    next();
+  } catch (error) {
+    logger.error('Authentication middleware error:', error);
+    return res.status(500).json({
       success: false,
-      message: 'Access denied. No token provided.',
-      code: 'NO_TOKEN'
+      message: 'Authentication error occurred.',
+      code: 'AUTH_ERROR'
     });
   }
-  
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    logger.warn('Authentication failed: Invalid token', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      path: req.path
-    });
-    return res.status(401).json({
-      success: false,
-      message: 'Access denied. Invalid token.',
-      code: 'INVALID_TOKEN'
-    });
-  }
-  
-  // Add user info to request
-  req.user = decoded;
-  req.userId = decoded.id;
-  req.userRole = decoded.role;
-  
-  logger.debug('User authenticated successfully', {
-    userId: decoded.id,
-    role: decoded.role,
-    path: req.path
-  });
-  
-  next();
 }
 
 /**
