@@ -58,7 +58,7 @@ async function fetchApi(endpoint, options = {}) {
     console.log('📡 API Response:', response.status, response.statusText);
     
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
@@ -66,7 +66,15 @@ async function fetchApi(endpoint, options = {}) {
     return data;
   } catch (error) {
     console.error('❌ API Error:', endpoint, error);
-    throw error;
+    
+    // Provide user-friendly error messages
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('Backend server is not available. Please check if the server is running.');
+    } else if (error.message.includes('CORS')) {
+      throw new Error('CORS error: The server is not configured to accept requests from this domain.');
+    } else {
+      throw error;
+    }
   }
 }
 

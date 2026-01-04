@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: nxtbus-backend
+    env: node
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_tAx2SjsUGmE5@ep-orange-haze-a4ge1ncv-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - key: JWT_SECRET
+        value: your-super-secure-production-jwt-secret-256-bits-long-change-this
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: CORS_ORIGIN
+        value: https://nxtbus.vercel.app,https://nxtbus-fleet-management.vercel.app,https://admin.nxtbus.in,https://owner.nxtbus.in,https://driver.nxtbus.in,https://nxtbus.in
+      - key: CORS_CREDENTIALS
+        value: true
+      - key: ENABLE_RATE_LIMITING
+        value: false
+      - key: ENABLE_SECURITY_HEADERS
+        value: true
+      - key: ENABLE_COMPRESSION
+        value: true
+      - key: LOG_LEVEL
+        value: info
