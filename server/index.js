@@ -52,14 +52,12 @@ if (process.env.ENABLE_RATE_LIMITING === 'true') {
   authRateLimit = (req, res, next) => next();
   gpsRateLimit = (req, res, next) => next();
   feedbackRateLimit = (req, res, next) => next();
-  apiKeyRateLimit = (req, res, next) => next();
-  websocketRateLimit = (req, res, next) => next();
-}
   gpsRateLimit = (req, res, next) => next();
   feedbackRateLimit = (req, res, next) => next();
   apiKeyRateLimit = (req, res, next) => next();
   websocketRateLimit = (req, res, next) => next();
 }
+
 const oauthGateway = require('./services/oauthGateway');
 const passport = require('passport');
 const {
