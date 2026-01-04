@@ -280,8 +280,6 @@ export async function getActiveSchedules() {
     return currentTime >= s.startTime && currentTime <= s.endTime;
   });
 }
-  });
-}
 
 // ============ ACTIVE TRIPS ============
 
@@ -399,12 +397,10 @@ export async function deleteNotification(id) {
 // ============ FEEDBACKS ============
 
 export async function getFeedbacks(filters = {}) {
+export async function getFeedbacks(filters = {}) {
   // No public GET endpoint for feedbacks, return empty array
   console.warn('Feedbacks GET endpoint not available, returning empty data');
   return [];
-}
-  
-  return feedbacks.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
 export async function addFeedback(feedbackData) {
@@ -480,17 +476,6 @@ export async function getLocations() {
     return [];
   }
 }
-  ]);
-  
-  // Get route IDs that have active schedules
-  const scheduledRouteIds = new Set(
-    schedules
-      .filter(s => s.status === 'active')
-      .map(s => s.routeId)
-  );
-  
-  // Only include routes that have schedules assigned
-  const scheduledRoutes = routes.filter(r => scheduledRouteIds.has(r.id));
   
   const locationMap = new Map();
   
