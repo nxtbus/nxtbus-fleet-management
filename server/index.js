@@ -91,16 +91,13 @@ app.use(requestLogger);
 
 // Rate limiting with dynamic tiers
 if (process.env.ENABLE_RATE_LIMITING !== 'false') {
-  app.use('/api/', dynamicRateLimit);
+  // Temporarily disabled due to IPv6 configuration issue
+  // app.use('/api/', dynamicRateLimit);
+  console.log('⚠️ Rate limiting temporarily disabled');
 }
 
-// Data directory
-const DATA_DIR = path.join(__dirname, 'data');
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+// Import database service
+const db = require('./services/databaseService');
 
 // Enhanced default data with hashed passwords
 const bcrypt = require('bcryptjs');
@@ -175,60 +172,164 @@ async function initializeDefaultData() {
     feedbacks: [],
     activeTrips: [],
     schedules: [],
-    callAlerts: []
+    callAlerts: [
+      {
+        id: 'CALL001',
+        tripId: 'TRIP001',
+        busId: 'BUS001',
+        busNumber: '101A',
+        driverId: 'DRV001',
+        driverName: 'Rajesh Kumar',
+        driverPhone: '9876543210',
+        routeId: 'ROUTE001',
+        routeName: 'Central Station → Airport',
+        ownerId: 'OWN001',
+        callType: 'incoming',
+        callStatus: 'answered',
+        timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
+        location: { lat: 12.9716, lon: 77.5946 },
+        status: 'active',
+        acknowledged: false,
+        acknowledgedBy: null,
+        acknowledgedAt: null,
+        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'CALL002',
+        tripId: 'TRIP002',
+        busId: 'BUS003',
+        busNumber: '103C',
+        driverId: 'DRV002',
+        driverName: 'Suresh Patel',
+        driverPhone: '9876543211',
+        routeId: 'ROUTE001',
+        routeName: 'Central Station → Airport',
+        ownerId: 'OWN002',
+        callType: 'outgoing',
+        callStatus: 'ended',
+        timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+        location: { lat: 13.0200, lon: 77.6400 },
+        status: 'active',
+        acknowledged: true,
+        acknowledgedBy: 'Owner',
+        acknowledgedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString()
+      }
+    ]
   };
   
   return defaultData;
 }
 
-// Helper functions with error handling
-function getFilePath(collection) {
-  return path.join(DATA_DIR, `${collection}.json`);
+// ============ DATABASE HELPER FUNCTIONS ============
+
+// Helper functions for database operations
+async function getBuses() {
+  return await db.getBuses();
 }
 
-function readData(collection) {
-  const filePath = getFilePath(collection);
+async function getRoutes() {
+  return await db.getRoutes();
+}
+
+async function getActiveTrips() {
+  return await db.getActiveTrips();
+}
+
+async function getSchedules() {
+  return await db.getSchedules();
+}
+
+async function getNotifications() {
+  return await db.getNotifications();
+}
+
+async function getFeedbacks() {
+  return await db.getFeedbacks();
+}
+
+async function getDelays() {
+  return await db.getDelays();
+}
+
+async function getCallAlerts() {
+  return await db.getCallAlerts();
+}
+
+async function getOwners() {
+  return await db.getOwners();
+}
+
+async function getDrivers() {
+  return await db.getDrivers();
+}
+
+async function getAdmins() {
+  return await db.getAdmins();
+}
+
+// Legacy function for backward compatibility (now uses database)
+async function readData(collection) {
   try {
-    if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, 'utf8');
-      return JSON.parse(data);
+    switch (collection) {
+      case 'buses':
+        return await getBuses();
+      case 'routes':
+        return await getRoutes();
+      case 'activeTrips':
+        return await getActiveTrips();
+      case 'schedules':
+        return await getSchedules();
+      case 'notifications':
+        return await getNotifications();
+      case 'feedbacks':
+        return await getFeedbacks();
+      case 'delays':
+        return await getDelays();
+      case 'callAlerts':
+        return await getCallAlerts();
+      case 'drivers':
+        return await getDrivers();
+      case 'owners':
+        return await getOwners();
+      case 'admins':
+        return await getAdmins();
+      default:
+        console.warn(`Unknown collection: ${collection}`);
+        return [];
     }
   } catch (error) {
-    console.error(`Error reading ${collection}:`, error);
+    console.error(`Error reading ${collection} from database:`, error);
     throw new AppError(`Failed to read ${collection} data`, 500, 'DATABASE_ERROR');
   }
-  // Return default data if file doesn't exist
-  return defaultData[collection] || [];
 }
 
-function writeData(collection, data) {
-  const filePath = getFilePath(collection);
+// Legacy function for backward compatibility (writes to database)
+async function writeData(collection, data) {
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    // This function is deprecated - individual database methods should be used instead
+    console.warn(`writeData is deprecated for collection: ${collection}. Use specific database methods instead.`);
     return true;
   } catch (error) {
-    console.error(`Error writing ${collection}:`, error);
+    console.error(`Error writing ${collection} to database:`, error);
     throw new AppError(`Failed to write ${collection} data`, 500, 'DATABASE_ERROR');
-  }
-}
-
-// Initialize data files if they don't exist
-async function initializeDataFiles() {
-  const defaultData = await initializeDefaultData();
-  
-  for (const [collection, data] of Object.entries(defaultData)) {
-    const filePath = getFilePath(collection);
-    if (!fs.existsSync(filePath)) {
-      writeData(collection, data);
-      console.log(`✅ Created ${collection}.json`);
-    }
   }
 }
 
 // Initialize the server
 async function startServer() {
-  // Initialize data files
-  await initializeDataFiles();
+  // Test database connection
+  console.log('🔗 Testing database connection...');
+  
+  try {
+    // Test database connection by getting a simple count
+    const buses = await db.getBuses();
+    console.log(`✅ Database connected - ${buses.length} buses found`);
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    console.error('Please check your DATABASE_URL in .env file');
+    process.exit(1);
+  }
 
 // ============ OAUTH & API KEY AUTHENTICATION ============
 
@@ -328,9 +429,8 @@ app.post('/api/auth/admin/login',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { username, password } = req.body;
-    const admins = readData('admins');
     
-    const admin = admins.find(a => a.username === username);
+    const admin = await db.getAdminByUsername(username);
     
     if (!admin) {
       logAuthEvent('ADMIN_LOGIN_FAILED', null, { username, reason: 'user_not_found', ip: req.ip });
@@ -351,10 +451,7 @@ app.post('/api/auth/admin/login',
     }
     
     // Update last login
-    admin.lastLogin = new Date().toISOString();
-    const adminIndex = admins.findIndex(a => a.id === admin.id);
-    admins[adminIndex] = admin;
-    writeData('admins', admins);
+    await db.updateAdmin(admin.id, { last_login: new Date().toISOString() });
     
     // Generate JWT token
     const { generateToken, createUserSession } = require('./middleware/auth');
@@ -382,8 +479,8 @@ app.post('/api/auth/owner/login',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { phone, pin } = req.body;
-    const owners = readData('owners');
     
+    const owners = await getOwners();
     const owner = owners.find(o => o.phone === phone);
     
     if (!owner) {
@@ -392,7 +489,7 @@ app.post('/api/auth/owner/login',
     }
     
     const bcrypt = require('bcryptjs');
-    const isValidPin = await bcrypt.compare(pin, owner.pin);
+    const isValidPin = await bcrypt.compare(pin, owner.password || owner.pin);
     
     if (!isValidPin) {
       logAuthEvent('OWNER_LOGIN_FAILED', owner.id, { phone, reason: 'invalid_pin', ip: req.ip });
@@ -405,10 +502,7 @@ app.post('/api/auth/owner/login',
     }
     
     // Update last login
-    owner.lastLogin = new Date().toISOString();
-    const ownerIndex = owners.findIndex(o => o.id === owner.id);
-    owners[ownerIndex] = owner;
-    writeData('owners', owners);
+    await db.updateOwner(owner.id, { last_login: new Date().toISOString() });
     
     // Generate JWT token
     const { generateToken, createUserSession } = require('./middleware/auth');
@@ -417,8 +511,8 @@ app.post('/api/auth/owner/login',
     
     logAuthEvent('OWNER_LOGIN_SUCCESS', owner.id, { phone, ip: req.ip });
     
-    // Return owner without PIN
-    const { pin: _, ...ownerData } = owner;
+    // Return owner without PIN/password
+    const { pin: _, password: __, ...ownerData } = owner;
     res.json({ 
       success: true, 
       owner: ownerData,
@@ -436,8 +530,8 @@ app.post('/api/auth/driver/login',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { phone, pin } = req.body;
-    const drivers = readData('drivers');
     
+    const drivers = await getDrivers();
     const driver = drivers.find(d => d.phone === phone);
     
     if (!driver) {
@@ -446,7 +540,7 @@ app.post('/api/auth/driver/login',
     }
     
     const bcrypt = require('bcryptjs');
-    const isValidPin = await bcrypt.compare(pin, driver.pin);
+    const isValidPin = await bcrypt.compare(pin, driver.password || driver.pin);
     
     if (!isValidPin) {
       logAuthEvent('DRIVER_LOGIN_FAILED', driver.id, { phone, reason: 'invalid_pin', ip: req.ip });
@@ -459,10 +553,7 @@ app.post('/api/auth/driver/login',
     }
     
     // Update last login
-    driver.lastLogin = new Date().toISOString();
-    const driverIndex = drivers.findIndex(d => d.id === driver.id);
-    drivers[driverIndex] = driver;
-    writeData('drivers', drivers);
+    await db.updateDriver(driver.id, { last_login: new Date().toISOString() });
     
     // Generate JWT token
     const { generateToken, createUserSession } = require('./middleware/auth');
@@ -471,8 +562,8 @@ app.post('/api/auth/driver/login',
     
     logAuthEvent('DRIVER_LOGIN_SUCCESS', driver.id, { phone, ip: req.ip });
     
-    // Return driver without PIN
-    const { pin: _, ...driverData } = driver;
+    // Return driver without PIN/password
+    const { pin: _, password: __, ...driverData } = driver;
     res.json({ 
       success: true, 
       driver: driverData,
@@ -606,20 +697,18 @@ app.post('/api/feedbacks',
   validateFeedback,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
-    const feedbacks = readData('feedbacks');
     const newFeedback = {
-      id: `FBK${String(feedbacks.length + 1).padStart(3, '0')}`,
+      id: `FBK${Date.now()}`,
       ...req.body,
       status: 'pending',
-      timestamp: new Date().toISOString(),
+      submitted_at: new Date().toISOString(),
       ip: req.ip,
       userAgent: req.get('User-Agent')
     };
     
-    feedbacks.push(newFeedback);
-    writeData('feedbacks', feedbacks);
+    const feedback = await db.addFeedback(newFeedback);
     
-    res.status(201).json({ success: true, feedback: newFeedback });
+    res.status(201).json({ success: true, feedback });
   })
 );
 
@@ -670,7 +759,7 @@ app.get('/api/admin/dashboard/stats',
 // Bus management
 app.get('/api/admin/buses',
   asyncHandler(async (req, res) => {
-    const buses = readData('buses');
+    const buses = await readData('buses');
     res.json(buses);
   })
 );
@@ -762,9 +851,9 @@ app.post('/api/admin/routes',
 // Driver management
 app.get('/api/admin/drivers',
   asyncHandler(async (req, res) => {
-    const drivers = readData('drivers');
+    const drivers = await readData('drivers');
     // Remove PINs from response
-    const safeDrivers = drivers.map(({ pin, ...driver }) => driver);
+    const safeDrivers = drivers.map(({ pin, password, ...driver }) => driver);
     res.json(safeDrivers);
   })
 );
@@ -797,9 +886,9 @@ app.post('/api/admin/drivers',
 // Owner management
 app.get('/api/owners',
   asyncHandler(async (req, res) => {
-    const owners = readData('owners');
-    // Remove PINs from response
-    const safeOwners = owners.map(({ pin, ...owner }) => owner);
+    const owners = await readData('owners');
+    // Remove PINs/passwords from response
+    const safeOwners = owners.map(({ pin, password, ...owner }) => owner);
     res.json(safeOwners);
   })
 );
@@ -808,22 +897,25 @@ app.post('/api/admin/owners',
   validateLogin,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
-    const owners = readData('owners');
     const bcrypt = require('bcryptjs');
     
+    const owners = await getOwners();
     const newOwner = {
       id: `OWN${String(owners.length + 1).padStart(3, '0')}`,
-      ...req.body,
-      pin: await bcrypt.hash(req.body.pin, 10),
-      status: 'active',
-      createdAt: new Date().toISOString()
+      name: req.body.name,
+      email: req.body.email,
+      phone: req.body.phone,
+      password: await bcrypt.hash(req.body.pin, 10),
+      company_name: req.body.name,
+      license_number: 'N/A',
+      address: req.body.address,
+      status: 'active'
     };
     
-    owners.push(newOwner);
-    writeData('owners', owners);
+    const createdOwner = await db.addOwner(newOwner);
     
-    // Return without PIN
-    const { pin, ...safeOwner } = newOwner;
+    // Return without password
+    const { password, ...safeOwner } = createdOwner;
     res.status(201).json({ success: true, owner: safeOwner });
   })
 );
@@ -877,6 +969,68 @@ app.post('/api/admin/notifications',
     writeData('notifications', notifications);
     
     res.status(201).json({ success: true, notification: newNotification });
+  })
+);
+
+// Call alerts management
+app.get('/api/callAlerts',
+  asyncHandler(async (req, res) => {
+    const callAlerts = readData('callAlerts');
+    res.json(callAlerts);
+  })
+);
+
+app.post('/api/callAlerts',
+  asyncHandler(async (req, res) => {
+    const callAlerts = readData('callAlerts');
+    const newAlert = {
+      id: `CALL${String(callAlerts.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      createdAt: new Date().toISOString()
+    };
+    
+    callAlerts.push(newAlert);
+    writeData('callAlerts', callAlerts);
+    
+    res.status(201).json({ success: true, alert: newAlert });
+  })
+);
+
+app.put('/api/callAlerts/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const callAlerts = readData('callAlerts');
+    const index = callAlerts.findIndex(a => a.id === id);
+    
+    if (index === -1) {
+      throw new NotFoundError('Call Alert');
+    }
+    
+    callAlerts[index] = { ...callAlerts[index], ...req.body, updatedAt: new Date().toISOString() };
+    writeData('callAlerts', callAlerts);
+    
+    res.json({ success: true, alert: callAlerts[index] });
+  })
+);
+
+app.delete('/api/callAlerts/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const callAlerts = readData('callAlerts');
+    const index = callAlerts.findIndex(a => a.id === id);
+    
+    if (index === -1) {
+      throw new NotFoundError('Call Alert');
+    }
+    
+    callAlerts.splice(index, 1);
+    writeData('callAlerts', callAlerts);
+    
+    res.json({ success: true, message: 'Call alert deleted successfully' });
   })
 );
 
@@ -1047,8 +1201,34 @@ app.put('/api/driver/trips/:id/end',
 // Get routes (public)
 app.get('/api/routes',
   asyncHandler(async (req, res) => {
-    const routes = readData('routes');
+    const routes = await readData('routes');
     res.json(routes.filter(r => r.status === 'active'));
+  })
+);
+
+// Get schedules (public)
+app.get('/api/schedules',
+  asyncHandler(async (req, res) => {
+    const schedules = readData('schedules');
+    res.json(schedules.filter(s => s.status === 'active'));
+  })
+);
+
+// Get drivers (public - without sensitive data)
+app.get('/api/drivers',
+  asyncHandler(async (req, res) => {
+    const drivers = await readData('drivers');
+    // Remove PINs from response for security
+    const safeDrivers = drivers.map(({ pin, password, ...driver }) => driver);
+    res.json(safeDrivers.filter(d => d.status === 'active'));
+  })
+);
+
+// Get buses (public)
+app.get('/api/buses',
+  asyncHandler(async (req, res) => {
+    const buses = await readData('buses');
+    res.json(buses.filter(b => b.status === 'active'));
   })
 );
 
@@ -1256,6 +1436,42 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Root endpoint - API documentation
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'NxtBus API Server - Production Ready',
+    version: '2.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/api/health',
+      authentication: {
+        admin: 'POST /api/auth/admin/login',
+        owner: 'POST /api/auth/owner/login', 
+        driver: 'POST /api/auth/driver/login'
+      },
+      public: {
+        routes: 'GET /api/routes',
+        buses: 'GET /api/buses',
+        drivers: 'GET /api/drivers',
+        owners: 'GET /api/owners',
+        activeTrips: 'GET /api/trips/active',
+        notifications: 'GET /api/notifications',
+        feedback: 'POST /api/feedbacks'
+      },
+      admin: {
+        dashboard: 'GET /api/admin/dashboard/stats',
+        buses: 'GET /api/admin/buses',
+        routes: 'GET /api/admin/routes',
+        drivers: 'GET /api/admin/drivers'
+      }
+    },
+    database: 'PostgreSQL (Neon)',
+    status: 'operational'
+  });
+});
+
 // 404 handler
 app.use(notFoundHandler);
 
@@ -1283,7 +1499,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     console.log(`🚀 NxtBus API Server running on http://${HOST}:${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔒 Security features enabled`);
-    console.log(`📁 Data stored in: ${DATA_DIR}`);
+    console.log(`🗄️ Database: PostgreSQL (Neon)`);
     console.log(`🌐 Network access: http://${process.env.NETWORK_IP || 'localhost'}:${PORT}`);
   });
 

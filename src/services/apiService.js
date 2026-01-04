@@ -21,13 +21,23 @@ const getHost = () => {
   return 'localhost';
 };
 
-const HOST = getHost();
-const API_BASE = `http://${HOST}:3001/api`;
+// Production API configuration
+const getAPIBase = () => {
+  // Production: use Render backend URL
+  if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') {
+    return 'https://nxtbus-backend.onrender.com/api';
+  }
+  
+  // Development: use localhost with auto-detection
+  const HOST = getHost();
+  return `http://${HOST}:3001/api`;
+};
+
+const API_BASE = getAPIBase();
 
 console.log('🔧 API Configuration:', {
   isCapacitor: window.Capacitor?.isNativePlatform(),
   hostname: window.location.hostname,
-  HOST,
   API_BASE
 });
 
@@ -157,8 +167,20 @@ export async function getDriverByPhone(phone) {
 }
 
 export async function authenticateDriver(phone, pin) {
-  const drivers = await getAll('drivers');
-  return drivers.find(d => d.phone === phone && d.pin === pin);
+  try {
+    const response = await fetchApi('/auth/driver/login', {
+      method: 'POST',
+      body: JSON.stringify({ phone, pin })
+    });
+    
+    if (response.success) {
+      return response.driver;
+    }
+    return null;
+  } catch (error) {
+    console.error('Driver authentication error:', error);
+    return null;
+  }
 }
 
 export async function addDriver(driverData) {

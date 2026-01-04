@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Owner Login</title>
+</head>
+<body>
+    <h1>Test Owner Login</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing login...';
+            
+            try {
+                console.log('Testing API connection...');
+                
+                const response = await fetch('http://localhost:3001/api/auth/owner/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: '9876500001', pin: '1234' })
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `<div style="color: green;">✅ Login Success!<br>Owner: ${data.owner.name}<br>ID: ${data.owner.id}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div style="color: red;">❌ Login Failed: ${data.message}</div>`;
+                }
+            } catch (error) {
+                console.error('Login test error:', error);
+                resultDiv.innerHTML = `<div style="color: red;">❌ Connection Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

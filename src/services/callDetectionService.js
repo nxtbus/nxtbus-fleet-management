@@ -13,16 +13,37 @@ const getApiBase = () => {
     }
     return 'localhost';
   };
-  return `http://${getHost()}:3001/api`;
+  const apiBase = `http://${getHost()}:3001/api`;
+  console.log('Call Detection Service - API Base URL:', apiBase);
+  return apiBase;
 };
 
 async function fetchApi(endpoint, options = {}) {
-  const response = await fetch(`${getApiBase()}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!response.ok) throw new Error(`API Error: ${response.status}`);
-  return response.json();
+  const apiBase = getApiBase();
+  const url = `${apiBase}${endpoint}`;
+  console.log('Call Detection API Request:', url, options);
+  
+  try {
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+    
+    console.log('Call Detection API Response Status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Call Detection API Error:', response.status, errorText);
+      throw new Error(`API Error: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Call Detection API Response Data:', data);
+    return data;
+  } catch (error) {
+    console.error('Call Detection API Request Failed:', error);
+    throw error;
+  }
 }
 
 // Store for call alerts

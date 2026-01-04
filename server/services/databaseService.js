@@ -1,0 +1,439 @@
+/**
+ * Database Service for NxtBus - PostgreSQL (Neon)
+ * Replaces JSON file storage with proper database
+ */
+
+require('dotenv').config();
+const { Pool } = require('pg');
+
+class DatabaseService {
+  constructor() {
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    });
+    
+    // Test connection on startup
+    this.testConnection();
+  }
+
+  async testConnection() {
+    try {
+      const client = await this.pool.connect();
+      console.log('✅ Database connected successfully');
+      client.release();
+    } catch (error) {
+      console.error('❌ Database connection failed:', error.message);
+    }
+  }
+
+  async query(text, params) {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(text, params);
+      return result;
+    } finally {
+      client.release();
+    }
+  }
+
+  // ============ BUSES ============
+  
+  async getBuses() {
+    const result = await this.query('SELECT * FROM buses WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async getBusById(id) {
+    const result = await this.query('SELECT * FROM buses WHERE id = $1', [id]);
+    return result.rows[0];
+  }
+
+  async addBus(busData) {
+    const { id, number, model, year, capacity, fuel_type, owner_id, status = 'active' } = busData;
+    const result = await this.query(
+      `INSERT INTO buses (id, number, model, year, capacity, fuel_type, owner_id, status, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+       RETURNING *`,
+      [id, number, model, year, capacity, fuel_type, owner_id, status]
+    );
+    return result.rows[0];
+  }
+
+  async updateBus(id, updates) {
+    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.query(
+      `UPDATE buses SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  async deleteBus(id) {
+    await this.query('UPDATE buses SET status = $1 WHERE id = $2', ['deleted', id]);
+    return { success: true };
+  }
+
+  // ============ ROUTES ============
+  
+  async getRoutes() {
+    const result = await this.query('SELECT * FROM routes WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async getRouteById(id) {
+    const result = await this.query('SELECT * FROM routes WHERE id = $1', [id]);
+    return result.rows[0];
+  }
+
+  async addRoute(routeData) {
+    const { 
+      id, name, start_point, end_point, start_lat, start_lon, 
+      end_lat, end_lon, estimated_duration, distance, fare, stops, status = 'active' 
+    } = routeData;
+    
+    const result = await this.query(
+      `INSERT INTO routes (id, name, start_point, end_point, start_lat, start_lon, end_lat, end_lon, 
+       estimated_duration, distance, fare, stops, status, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP) 
+       RETURNING *`,
+      [id, name, start_point, end_point, start_lat, start_lon, end_lat, end_lon, 
+       estimated_duration, distance, fare, JSON.stringify(stops), status]
+    );
+    return result.rows[0];
+  }
+
+  async updateRoute(id, updates) {
+    if (updates.stops) {
+      updates.stops = JSON.stringify(updates.stops);
+    }
+    
+    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.query(
+      `UPDATE routes SET ${fields} WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  // ============ ACTIVE TRIPS ============
+  
+  async getActiveTrips() {
+    const result = await this.query('SELECT * FROM active_trips WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows.map(row => ({
+      ...row,
+      current_gps: row.current_gps,
+      previous_gps: row.previous_gps
+    }));
+  }
+
+  async getTripById(id) {
+    const result = await this.query('SELECT * FROM active_trips WHERE id = $1', [id]);
+    if (result.rows[0]) {
+      return {
+        ...result.rows[0],
+        current_gps: result.rows[0].current_gps,
+        previous_gps: result.rows[0].previous_gps
+      };
+    }
+    return null;
+  }
+
+  async addTrip(tripData) {
+    const {
+      id, trip_id, bus_id, driver_id, driver_name, route_id, route_name, owner_id,
+      status = 'active', start_time, estimated_end_time, current_gps, previous_gps,
+      max_speed, avg_speed, gps_update_count = 0, overspeed_count = 0,
+      last_overspeed, last_update, progress = 0, current_stop_id, next_stop_id, estimated_arrival
+    } = tripData;
+
+    const result = await this.query(
+      `INSERT INTO active_trips (
+        id, trip_id, bus_id, driver_id, driver_name, route_id, route_name, owner_id,
+        status, start_time, estimated_end_time, current_gps, previous_gps,
+        max_speed, avg_speed, gps_update_count, overspeed_count,
+        last_overspeed, last_update, progress, current_stop_id, next_stop_id, 
+        estimated_arrival, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, CURRENT_TIMESTAMP)
+      RETURNING *`,
+      [id, trip_id, bus_id, driver_id, driver_name, route_id, route_name, owner_id,
+       status, start_time, estimated_end_time, JSON.stringify(current_gps), JSON.stringify(previous_gps),
+       max_speed, avg_speed, gps_update_count, overspeed_count,
+       last_overspeed, last_update, progress, current_stop_id, next_stop_id, estimated_arrival]
+    );
+    
+    return {
+      ...result.rows[0],
+      current_gps: result.rows[0].current_gps,
+      previous_gps: result.rows[0].previous_gps
+    };
+  }
+
+  async updateTrip(id, updates) {
+    if (updates.current_gps) {
+      updates.current_gps = JSON.stringify(updates.current_gps);
+    }
+    if (updates.previous_gps) {
+      updates.previous_gps = JSON.stringify(updates.previous_gps);
+    }
+    
+    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.query(
+      `UPDATE active_trips SET ${fields} WHERE id = $1 RETURNING *`,
+      values
+    );
+    
+    if (result.rows[0]) {
+      return {
+        ...result.rows[0],
+        current_gps: result.rows[0].current_gps,
+        previous_gps: result.rows[0].previous_gps
+      };
+    }
+    return null;
+  }
+
+  // ============ SCHEDULES ============
+  
+  async getSchedules() {
+    const result = await this.query('SELECT * FROM schedules WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async addSchedule(scheduleData) {
+    const { id, bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status = 'active' } = scheduleData;
+    
+    const result = await this.query(
+      `INSERT INTO schedules (id, bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP) RETURNING *`,
+      [id, bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status]
+    );
+    return result.rows[0];
+  }
+
+  // ============ NOTIFICATIONS ============
+  
+  async getNotifications() {
+    const result = await this.query('SELECT * FROM notifications WHERE status = $1 ORDER BY sent_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async addNotification(notificationData) {
+    const { id, title, message, type, priority = 'medium', target_audience, expires_at, status = 'active' } = notificationData;
+    
+    const result = await this.query(
+      `INSERT INTO notifications (id, title, message, type, priority, target_audience, expires_at, status, sent_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) RETURNING *`,
+      [id, title, message, type, priority, target_audience, expires_at, status]
+    );
+    return result.rows[0];
+  }
+
+  // ============ FEEDBACKS ============
+  
+  async getFeedbacks() {
+    const result = await this.query('SELECT * FROM feedbacks ORDER BY submitted_at DESC');
+    return result.rows;
+  }
+
+  async addFeedback(feedbackData) {
+    const { id, user_name, user_email, bus_number, route_name, rating, feedback_text, category, status = 'pending' } = feedbackData;
+    
+    const result = await this.query(
+      `INSERT INTO feedbacks (id, user_name, user_email, bus_number, route_name, rating, feedback_text, category, status, submitted_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP) RETURNING *`,
+      [id, user_name, user_email, bus_number, route_name, rating, feedback_text, category, status]
+    );
+    return result.rows[0];
+  }
+
+  // ============ DELAYS ============
+  
+  async getDelays() {
+    const result = await this.query('SELECT * FROM delays WHERE status = $1 ORDER BY reported_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async addDelay(delayData) {
+    const { id, bus_id, bus_number, route_id, delay_minutes, reason, status = 'active' } = delayData;
+    
+    const result = await this.query(
+      `INSERT INTO delays (id, bus_id, bus_number, route_id, delay_minutes, reason, status, reported_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) RETURNING *`,
+      [id, bus_id, bus_number, route_id, delay_minutes, reason, status]
+    );
+    return result.rows[0];
+  }
+
+  // ============ CALL ALERTS ============
+  
+  async getCallAlerts() {
+    const result = await this.query('SELECT * FROM call_alerts WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async addCallAlert(alertData) {
+    const { id, driver_id, driver_name, bus_number, alert_type, message, priority = 'medium', status = 'active' } = alertData;
+    
+    const result = await this.query(
+      `INSERT INTO call_alerts (id, driver_id, driver_name, bus_number, alert_type, message, priority, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) RETURNING *`,
+      [id, driver_id, driver_name, bus_number, alert_type, message, priority, status]
+    );
+    return result.rows[0];
+  }
+
+  // ============ OWNERS ============
+  
+  async getOwners() {
+    const result = await this.query('SELECT * FROM owners WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async getOwnerById(id) {
+    const result = await this.query('SELECT * FROM owners WHERE id = $1', [id]);
+    return result.rows[0];
+  }
+
+  async addOwner(ownerData) {
+    const { id, name, email, phone, password, company_name, license_number, address, status = 'active' } = ownerData;
+    const result = await this.query(
+      `INSERT INTO owners (id, name, email, phone, password, company_name, license_number, address, status, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+       RETURNING *`,
+      [id, name, email, phone, password, company_name, license_number, address, status]
+    );
+    return result.rows[0];
+  }
+
+  async updateOwner(id, updates) {
+    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.query(
+      `UPDATE owners SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  async deleteOwner(id) {
+    await this.query('UPDATE owners SET status = $1 WHERE id = $2', ['deleted', id]);
+    return { success: true };
+  }
+
+  // ============ DRIVERS ============
+  
+  async getDrivers() {
+    const result = await this.query('SELECT * FROM drivers WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async getDriverById(id) {
+    const result = await this.query('SELECT * FROM drivers WHERE id = $1', [id]);
+    return result.rows[0];
+  }
+
+  async addDriver(driverData) {
+    const { id, name, phone, password, license_number, experience_years, status = 'active' } = driverData;
+    const result = await this.query(
+      `INSERT INTO drivers (id, name, phone, password, license_number, experience_years, status, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+       RETURNING *`,
+      [id, name, phone, password, license_number, experience_years, status]
+    );
+    return result.rows[0];
+  }
+
+  async updateDriver(id, updates) {
+    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.query(
+      `UPDATE drivers SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  async deleteDriver(id) {
+    await this.query('UPDATE drivers SET status = $1 WHERE id = $2', ['deleted', id]);
+    return { success: true };
+  }
+
+  // ============ ADMINS ============
+  
+  async getAdmins() {
+    const result = await this.query('SELECT * FROM admins WHERE status = $1 ORDER BY created_at DESC', ['active']);
+    return result.rows;
+  }
+
+  async getAdminById(id) {
+    const result = await this.query('SELECT * FROM admins WHERE id = $1', [id]);
+    return result.rows[0];
+  }
+
+  async getAdminByUsername(username) {
+    const result = await this.query('SELECT * FROM admins WHERE username = $1', [username]);
+    return result.rows[0];
+  }
+
+  async addAdmin(adminData) {
+    const { id, username, password, name, email, role = 'admin', status = 'active' } = adminData;
+    const result = await this.query(
+      `INSERT INTO admins (id, username, password, name, email, role, status, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+       RETURNING *`,
+      [id, username, password, name, email, role, status]
+    );
+    return result.rows[0];
+  }
+
+  async updateAdmin(id, updates) {
+    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.query(
+      `UPDATE admins SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  // ============ UTILITY METHODS ============
+  
+  async getLocations() {
+    // Get unique locations from routes
+    const result = await this.query(`
+      SELECT DISTINCT location_name, lat, lon FROM (
+        SELECT start_point as location_name, start_lat as lat, start_lon as lon FROM routes WHERE status = 'active'
+        UNION
+        SELECT end_point as location_name, end_lat as lat, end_lon as lon FROM routes WHERE status = 'active'
+        UNION
+        SELECT stop->>'name' as location_name, (stop->>'lat')::decimal as lat, (stop->>'lon')::decimal as lon 
+        FROM routes, jsonb_array_elements(stops) as stop WHERE status = 'active'
+      ) locations
+      WHERE location_name IS NOT NULL
+      ORDER BY location_name
+    `);
+    
+    return result.rows.map(row => ({
+      name: row.location_name,
+      lat: parseFloat(row.lat),
+      lon: parseFloat(row.lon)
+    }));
+  }
+
+  // Close connection pool
+  async close() {
+    await this.pool.end();
+  }
+}
+
+module.exports = new DatabaseService();

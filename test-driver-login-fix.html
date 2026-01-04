@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Driver Login Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 20px; border: 2px solid #FF6B35; border-radius: 8px; background: #fff7ed; }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        button { padding: 12px 24px; margin: 5px; background: #FF6B35; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #e55a2b; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .result.success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .result.info { background: #d1ecf1; border: 1px solid #bee5eb; }
+        .credentials { background: #e9ecef; padding: 15px; border-radius: 5px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Driver Login Fix Test</h1>
+        <p>Testing the fixed driver authentication system</p>
+        
+        <div class="test-section">
+            <h2>🔧 Driver Authentication Fix Applied</h2>
+            <p><strong>Issue:</strong> Driver authentication was comparing plain text PINs with hashed PINs</p>
+            <p><strong>Fix:</strong> Updated authenticateDriver() to use server API endpoint with proper PIN hashing</p>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 Test All Driver Credentials</h2>
+            
+            <h3>Driver 1 - Rajesh Kumar</h3>
+            <div class="credentials">
+                Phone: 9876543210<br>
+                PIN: 1234
+            </div>
+            <button onclick="testDriverLogin('9876543210', '1234', 'driver1')">Test Driver 1</button>
+            <div id="driver1-result"></div>
+            
+            <h3>Driver 2 - Suresh Patel</h3>
+            <div class="credentials">
+                Phone: 9876543211<br>
+                PIN: 5678
+            </div>
+            <button onclick="testDriverLogin('9876543211', '5678', 'driver2')">Test Driver 2</button>
+            <div id="driver2-result"></div>
+            
+            <h3>Driver 3 - Amit Singh</h3>
+            <div class="credentials">
+                Phone: 9876543212<br>
+                PIN: 9012
+            </div>
+            <button onclick="testDriverLogin('9876543212', '9012', 'driver3')">Test Driver 3</button>
+            <div id="driver3-result"></div>
+            
+            <h3>Test All Drivers</h3>
+            <button onclick="testAllDrivers()" style="background: #28a745; font-size: 16px; padding: 15px 30px;">🧪 Test All Driver Logins</button>
+            <div id="all-results"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+
+        function updateResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const resultClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="result ${resultClass}">${message}</div>`;
+        }
+
+        function clearResult(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function testDriverLogin(phone, pin, resultId) {
+            clearResult(`${resultId}-result`);
+            updateResult(`${resultId}-result`, `🔍 Testing driver login for ${phone}...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/driver/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, pin })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    updateResult(`${resultId}-result`, `❌ HTTP Error: ${response.status} - ${errorText}`, 'error');
+                    return false;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateResult(`${resultId}-result`, '✅ Driver login successful!', 'success');
+                    updateResult(`${resultId}-result`, `👤 Driver: ${data.driver.name}`, 'success');
+                    updateResult(`${resultId}-result`, `🚌 Assigned Buses: ${data.driver.assignedBuses?.join(', ') || 'None'}`, 'info');
+                    updateResult(`${resultId}-result`, `📱 Phone: ${data.driver.phone}`, 'info');
+                    return true;
+                } else {
+                    updateResult(`${resultId}-result`, `❌ Login failed: ${data.message}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                updateResult(`${resultId}-result`, `❌ Connection error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testAllDrivers() {
+            clearResult('all-results');
+            updateResult('all-results', '🧪 Testing all driver credentials...', 'info');
+            
+            const drivers = [
+                { phone: '9876543210', pin: '1234', name: 'Rajesh Kumar' },
+                { phone: '9876543211', pin: '5678', name: 'Suresh Patel' },
+                { phone: '9876543212', pin: '9012', name: 'Amit Singh' }
+            ];
+            
+            let successCount = 0;
+            
+            for (const driver of drivers) {
+                const success = await testDriverLogin(driver.phone, driver.pin, 'temp');
+                if (success) {
+                    successCount++;
+                    updateResult('all-results', `✅ ${driver.name} (${driver.phone}) - LOGIN SUCCESS`, 'success');
+                } else {
+                    updateResult('all-results', `❌ ${driver.name} (${driver.phone}) - LOGIN FAILED`, 'error');
+                }
+            }
+            
+            updateResult('all-results', `📊 Test Results: ${successCount}/${drivers.length} drivers can login successfully`, 
+                successCount === drivers.length ? 'success' : 'error');
+            
+            if (successCount === drivers.length) {
+                updateResult('all-results', '🎉 Driver login fix is working perfectly!', 'success');
+                updateResult('all-results', '✅ All drivers can now login to the driver app', 'success');
+            } else {
+                updateResult('all-results', '⚠️ Some drivers still cannot login - check server logs', 'error');
+            }
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            setTimeout(() => {
+                updateResult('all-results', '🔄 Auto-running driver login test...', 'info');
+                testAllDrivers();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

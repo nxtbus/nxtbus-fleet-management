@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Owner App Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 20px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>NxtBus Owner App Flow Test</h1>
+    
+    <div class="test-section">
+        <h3>1. API Configuration Test</h3>
+        <button onclick="testApiConfig()">Test API Config</button>
+        <div id="config-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Server Health Check</h3>
+        <button onclick="testServerHealth()">Test Server Health</button>
+        <div id="health-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Owner Login Test</h3>
+        <button onclick="testOwnerLogin()">Test Owner Login</button>
+        <div id="login-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Call Alerts API Test</h3>
+        <button onclick="testCallAlerts()">Test Call Alerts</button>
+        <div id="alerts-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>5. Owner Buses Test</h3>
+        <button onclick="testOwnerBuses()">Test Owner Buses</button>
+        <div id="buses-result"></div>
+    </div>
+
+    <script>
+        // Simulate the same host detection logic as the owner app
+        const getHost = () => {
+            if (window.Capacitor?.isNativePlatform()) {
+                return '10.77.155.222';
+            }
+            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                return window.location.hostname;
+            }
+            return 'localhost';
+        };
+
+        const HOST = getHost();
+        const API_BASE = `http://${HOST}:3001/api`;
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="${className}">${message}</div>`;
+            console.log(message);
+        }
+
+        async function testApiConfig() {
+            const resultDiv = document.getElementById('config-result');
+            resultDiv.innerHTML = '';
+            
+            log('config-result', `🔧 Host Detection: ${HOST}`, 'info');
+            log('config-result', `🌐 API Base URL: ${API_BASE}`, 'info');
+            log('config-result', `📍 Window Location: ${window.location.hostname}`, 'info');
+            log('config-result', `📱 Is Capacitor: ${!!window.Capacitor?.isNativePlatform()}`, 'info');
+        }
+
+        async function testServerHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                log('health-result', '🔍 Testing server health...', 'info');
+                
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('health-result', '✅ Server is healthy!', 'success');
+                    log('health-result', `<pre>${JSON.stringify(data, null, 2)}</pre>`, 'info');
+                } else {
+                    log('health-result', `❌ Server health check failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('health-result', `❌ Server connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testOwnerLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                log('login-result', '🔐 Testing owner login...', 'info');
+                log('login-result', `📞 Phone: 9876500001, PIN: 1234`, 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/owner/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: '9876500001', pin: '1234' })
+                });
+                
+                log('login-result', `📡 Response Status: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('login-result', `❌ HTTP Error: ${response.status} - ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('login-result', '✅ Login successful!', 'success');
+                    log('login-result', `👤 Owner: ${data.owner.name} (${data.owner.id})`, 'success');
+                    
+                    // Test session storage
+                    localStorage.setItem('nxtbus_current_owner', JSON.stringify(data.owner));
+                    localStorage.setItem('nxtbus_owner_session', JSON.stringify({
+                        timestamp: Date.now(),
+                        ownerId: data.owner.id
+                    }));
+                    log('login-result', '💾 Session saved to localStorage', 'success');
+                } else {
+                    log('login-result', `❌ Login failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log('login-result', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCallAlerts() {
+            const resultDiv = document.getElementById('alerts-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                log('alerts-result', '📞 Testing call alerts API...', 'info');
+                
+                const response = await fetch(`${API_BASE}/callAlerts`);
+                
+                if (!response.ok) {
+                    log('alerts-result', `❌ Call alerts API failed: ${response.status}`, 'error');
+                    return;
+                }
+                
+                const alerts = await response.json();
+                log('alerts-result', `✅ Call alerts loaded: ${alerts.length} alerts`, 'success');
+                
+                if (alerts.length > 0) {
+                    log('alerts-result', `<pre>${JSON.stringify(alerts[0], null, 2)}</pre>`, 'info');
+                }
+            } catch (error) {
+                log('alerts-result', `❌ Call alerts error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testOwnerBuses() {
+            const resultDiv = document.getElementById('buses-result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                log('buses-result', '🚌 Testing buses API...', 'info');
+                
+                const response = await fetch(`${API_BASE}/buses`);
+                
+                if (!response.ok) {
+                    log('buses-result', `❌ Buses API failed: ${response.status}`, 'error');
+                    return;
+                }
+                
+                const buses = await response.json();
+                log('buses-result', `✅ Buses loaded: ${buses.length} buses`, 'success');
+                
+                // Filter buses for OWN001 (like the owner app would do)
+                const ownerBuses = buses.filter(b => b.ownerId === 'OWN001');
+                log('buses-result', `🏢 Owner OWN001 buses: ${ownerBuses.length}`, 'success');
+                
+                if (ownerBuses.length > 0) {
+                    log('buses-result', `<pre>${JSON.stringify(ownerBuses[0], null, 2)}</pre>`, 'info');
+                }
+            } catch (error) {
+                log('buses-result', `❌ Buses error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        window.onload = function() {
+            testApiConfig();
+        };
+    </script>
+</body>
+</html>

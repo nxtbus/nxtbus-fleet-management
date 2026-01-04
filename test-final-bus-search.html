@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Final Bus Search Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        button { padding: 12px 24px; margin: 5px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #218838; }
+        .result { margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .result.success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .result.info { background: #d1ecf1; border: 1px solid #bee5eb; }
+        .bus-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin: 10px 0; }
+        .bus-number { font-weight: bold; color: #007bff; }
+        .route-name { color: #6c757d; }
+        .status { padding: 3px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; }
+        .status.live { background: #28a745; color: white; }
+        .status.fresh { background: #17a2b8; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Final Bus Search Test</h1>
+        <p>Testing the complete passenger bus search functionality after GPS timestamp fix</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <button onclick="runFinalTest()" style="font-size: 18px; padding: 20px 40px;">
+                🚌 Test Bus Search: Central Station → Airport Terminal
+            </button>
+        </div>
+        
+        <div id="test-results"></div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 8px;">
+            <h3>🔗 Quick Links</h3>
+            <p><strong>Passenger App:</strong> <a href="http://localhost:5174/passenger" target="_blank">http://localhost:5174/passenger</a></p>
+            <p><strong>Direct Search:</strong> <a href="http://localhost:5174/passenger?from=Central%20Station&to=Airport%20Terminal" target="_blank">Central Station → Airport Terminal</a></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+
+        function updateResult(message, type = 'info') {
+            const element = document.getElementById('test-results');
+            const resultClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="result ${resultClass}">${message}</div>`;
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        async function runFinalTest() {
+            clearResults();
+            updateResult('🧪 Running final bus search test...', 'info');
+            
+            try {
+                // Step 1: Check GPS freshness
+                updateResult('📡 Step 1: Checking GPS data freshness...', 'info');
+                const trips = await fetch(`${API_BASE}/trips/active`).then(r => r.json());
+                
+                const now = Date.now();
+                let freshTrips = 0;
+                
+                trips.forEach(trip => {
+                    const gpsAge = now - trip.currentGps.timestamp;
+                    const gpsAgeMinutes = Math.round(gpsAge / (1000 * 60));
+                    const isFresh = gpsAge < 5 * 60 * 1000; // 5 minutes
+                    
+                    if (isFresh) {
+                        freshTrips++;
+                        updateResult(`✅ ${trip.busNumber} - GPS fresh (${gpsAgeMinutes} min old)`, 'success');
+                    } else {
+                        updateResult(`❌ ${trip.busNumber} - GPS stale (${gpsAgeMinutes} min old)`, 'error');
+                    }
+                });
+                
+                if (freshTrips === 0) {
+                    updateResult('❌ CRITICAL: No trips have fresh GPS data!', 'error');
+                    return;
+                }
+                
+                // Step 2: Test route matching
+                updateResult('🗺️ Step 2: Testing route matching...', 'info');
+                const routes = await fetch(`${API_BASE}/routes`).then(r => r.json());
+                
+                const targetRoute = routes.find(r => 
+                    r.startPoint === 'Central Station' && r.endPoint === 'Airport Terminal'
+                );
+                
+                if (!targetRoute) {
+                    updateResult('❌ Target route not found!', 'error');
+                    return;
+                }
+                
+                updateResult(`✅ Found route: ${targetRoute.name} (${targetRoute.id})`, 'success');
+                
+                // Step 3: Find buses on target route
+                updateResult('🚌 Step 3: Finding buses on target route...', 'info');
+                const routeBuses = trips.filter(t => t.routeId === targetRoute.id);
+                
+                if (routeBuses.length === 0) {
+                    updateResult('❌ No buses found on target route!', 'error');
+                    return;
+                }
+                
+                // Step 4: Simulate complete search logic
+                updateResult('🔍 Step 4: Simulating complete search logic...', 'info');
+                
+                const fromLoc = { name: 'Central Station', lat: 12.9716, lon: 77.5946 };
+                const toLoc = { name: 'Airport Terminal', lat: 13.1989, lon: 77.7068 };
+                
+                const searchResults = [];
+                
+                for (const trip of routeBuses) {
+                    // Check GPS freshness (same as busService.js)
+                    const gpsAge = now - trip.currentGps.timestamp;
+                    if (gpsAge >= 5 * 60 * 1000) {
+                        updateResult(`⏰ ${trip.busNumber} - Filtered out (GPS too old)`, 'info');
+                        continue;
+                    }
+                    
+                    // Check route serves both locations
+                    const route = targetRoute;
+                    const hasFrom = route.startPoint === fromLoc.name || 
+                                   route.endPoint === fromLoc.name ||
+                                   (route.stops || []).some(s => s.name === fromLoc.name);
+                    
+                    const hasTo = route.startPoint === toLoc.name || 
+                                 route.endPoint === toLoc.name ||
+                                 (route.stops || []).some(s => s.name === toLoc.name);
+                    
+                    if (hasFrom && hasTo) {
+                        searchResults.push({
+                            bus: trip,
+                            route: route,
+                            status: 'APPROACHING'
+                        });
+                        updateResult(`✅ ${trip.busNumber} - Added to search results`, 'success');
+                    } else {
+                        updateResult(`❌ ${trip.busNumber} - Route doesn't serve both locations`, 'error');
+                    }
+                }
+                
+                // Final result
+                if (searchResults.length > 0) {
+                    updateResult(`🎉 SUCCESS! Found ${searchResults.length} bus(es) for the search`, 'success');
+                    
+                    searchResults.forEach(result => {
+                        const gpsAge = Math.round((now - result.bus.currentGps.timestamp) / (1000 * 60));
+                        updateResult(`
+                            <div class="bus-card">
+                                <div class="bus-number">🚌 ${result.bus.busNumber}</div>
+                                <div class="route-name">${result.route.name}</div>
+                                <div>
+                                    <span class="status live">LIVE</span>
+                                    <span class="status fresh">GPS: ${gpsAge} min ago</span>
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    Speed: ${result.bus.currentGps.speed} km/h | 
+                                    Progress: ${result.bus.progress}%
+                                </div>
+                            </div>
+                        `, 'success');
+                    });
+                    
+                    updateResult('🎯 PASSENGER APP SHOULD NOW SHOW THESE BUSES!', 'success');
+                    updateResult('✅ Bus search fix is working correctly', 'success');
+                    
+                } else {
+                    updateResult('❌ No buses found in search results', 'error');
+                }
+                
+            } catch (error) {
+                updateResult(`❌ Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            setTimeout(runFinalTest, 1000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test CORS Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 20px; margin: 10px 0; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>CORS Fix Test - Port 5174</h1>
+    <p>This page simulates the owner app running on port 5174</p>
+    
+    <button onclick="testCorsLogin()">Test Login from Port 5174</button>
+    <div id="result" class="result"></div>
+
+    <script>
+        async function testCorsLogin() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="info">Testing CORS from port 5174...</div>';
+            
+            try {
+                console.log('Testing CORS fix...');
+                console.log('Current origin:', window.location.origin);
+                
+                const response = await fetch('http://localhost:3001/api/auth/owner/login', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:5174'
+                    },
+                    body: JSON.stringify({ phone: '9876500001', pin: '1234' })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ CORS Error: ${response.status} - ${errorText}</div>`;
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ CORS Fix Successful!</div>
+                        <div class="success">✅ Login worked from port 5174</div>
+                        <div class="info">Owner: ${data.owner.name} (${data.owner.id})</div>
+                        <div class="info">Phone: ${data.owner.phone}</div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Login failed: ${data.message}</div>`;
+                }
+            } catch (error) {
+                console.error('CORS test error:', error);
+                if (error.message.includes('CORS')) {
+                    resultDiv.innerHTML = `<div class="error">❌ CORS Error: ${error.message}<br>Port 5174 is not allowed by server CORS policy</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Connection Error: ${error.message}</div>`;
+                }
+            }
+        }
+        
+        // Show current origin
+        document.addEventListener('DOMContentLoaded', function() {
+            const info = document.createElement('div');
+            info.className = 'info';
+            info.innerHTML = `Current Origin: ${window.location.origin}`;
+            document.body.insertBefore(info, document.querySelector('button'));
+        });
+    </script>
+</body>
+</html>

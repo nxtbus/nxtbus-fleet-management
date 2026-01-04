@@ -20,12 +20,19 @@ const getHost = () => {
 const HOST = getHost();
 const API_BASE = `http://${HOST}:3001/api`;
 
+// Debug logging
+console.log('Owner Auth Service - API Base URL:', API_BASE);
+console.log('Owner Auth Service - Detected Host:', HOST);
+console.log('Owner Auth Service - Window Location:', window.location.hostname);
+
 // Store current owner in localStorage
 const OWNER_KEY = 'nxtbus_current_owner';
 const OWNER_SESSION_KEY = 'nxtbus_owner_session';
 
 // Login owner with phone and PIN
 export async function loginOwner(phone, pin) {
+  console.log('Owner Login Attempt:', { phone, apiBase: API_BASE });
+  
   try {
     const response = await fetch(`${API_BASE}/auth/owner/login`, {
       method: 'POST',
@@ -33,7 +40,16 @@ export async function loginOwner(phone, pin) {
       body: JSON.stringify({ phone, pin })
     });
     
+    console.log('Owner Login Response Status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Owner Login HTTP Error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+    
     const data = await response.json();
+    console.log('Owner Login Response Data:', data);
     
     if (data.success) {
       // Save session
@@ -42,13 +58,15 @@ export async function loginOwner(phone, pin) {
         timestamp: Date.now(),
         ownerId: data.owner.id
       }));
+      console.log('Owner Login Success - Session Saved');
       return { success: true, owner: data.owner };
     } else {
+      console.error('Owner Login Failed:', data.message);
       return { success: false, message: data.message };
     }
   } catch (error) {
     console.error('Owner login error:', error);
-    return { success: false, message: 'Server error. Please try again.' };
+    return { success: false, message: `Connection error: ${error.message}` };
   }
 }
 

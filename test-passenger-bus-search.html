@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Passenger Bus Search Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 20px; border: 2px solid #8B5CF6; border-radius: 8px; background: #f3f4f6; }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        button { padding: 12px 24px; margin: 5px; background: #8B5CF6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #7c3aed; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .result.success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .result.info { background: #d1ecf1; border: 1px solid #bee5eb; }
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin: 15px 0; }
+        .data-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .data-card h4 { margin-top: 0; color: #333; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚌 Passenger Bus Search Fix Test</h1>
+        <p>Testing why buses are not showing up in passenger search</p>
+        
+        <div class="test-section">
+            <h2>🔧 Issue Analysis</h2>
+            <p><strong>Problem:</strong> Passenger app shows "No buses found" even though buses exist</p>
+            <p><strong>Suspected Cause:</strong> GPS timestamps were too old, causing buses to be filtered out</p>
+            <p><strong>Fix Applied:</strong> Updated GPS timestamps to current time</p>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 Step-by-Step Verification</h2>
+            
+            <h3>Step 1: Test Active Trips API</h3>
+            <button onclick="testActiveTrips()">Test Active Trips</button>
+            <div id="trips-result"></div>
+            
+            <h3>Step 2: Test Routes API</h3>
+            <button onclick="testRoutes()">Test Routes</button>
+            <div id="routes-result"></div>
+            
+            <h3>Step 3: Test Schedules API</h3>
+            <button onclick="testSchedules()">Test Schedules</button>
+            <div id="schedules-result"></div>
+            
+            <h3>Step 4: Test Locations API</h3>
+            <button onclick="testLocations()">Test Locations</button>
+            <div id="locations-result"></div>
+            
+            <h3>Step 5: Simulate Bus Search</h3>
+            <button onclick="simulateBusSearch()">Simulate "Central Station → Airport Terminal" Search</button>
+            <div id="search-result"></div>
+            
+            <h3>Complete Test</h3>
+            <button onclick="runCompleteTest()" style="background: #28a745; font-size: 16px; padding: 15px 30px;">🧪 Run Complete Test</button>
+            <div id="complete-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+
+        function updateResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const resultClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="result ${resultClass}">${message}</div>`;
+        }
+
+        function clearResult(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function testActiveTrips() {
+            clearResult('trips-result');
+            updateResult('trips-result', '🔍 Testing active trips API...', 'info');
+            
+            try {
+                const trips = await fetch(`${API_BASE}/trips/active`).then(r => r.json());
+                
+                updateResult('trips-result', `✅ Active trips loaded: ${trips.length} trips`, 'success');
+                
+                trips.forEach(trip => {
+                    const gpsAge = Date.now() - trip.currentGps.timestamp;
+                    const gpsAgeMinutes = Math.round(gpsAge / (1000 * 60));
+                    const isFresh = gpsAge < 5 * 60 * 1000; // 5 minutes
+                    
+                    updateResult('trips-result', 
+                        `🚌 ${trip.busNumber} (${trip.routeName}) - GPS age: ${gpsAgeMinutes} min ${isFresh ? '✅ Fresh' : '❌ Stale'}`, 
+                        isFresh ? 'success' : 'error'
+                    );
+                });
+                
+                return trips;
+            } catch (error) {
+                updateResult('trips-result', `❌ Active trips error: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function testRoutes() {
+            clearResult('routes-result');
+            updateResult('routes-result', '🔍 Testing routes API...', 'info');
+            
+            try {
+                const routes = await fetch(`${API_BASE}/routes`).then(r => r.json());
+                
+                updateResult('routes-result', `✅ Routes loaded: ${routes.length} routes`, 'success');
+                
+                const centralToAirport = routes.find(r => 
+                    r.startPoint === 'Central Station' && r.endPoint === 'Airport Terminal'
+                );
+                
+                if (centralToAirport) {
+                    updateResult('routes-result', `✅ Found "Central Station → Airport Terminal" route (${centralToAirport.id})`, 'success');
+                    updateResult('routes-result', `📍 Stops: ${centralToAirport.stops?.length || 0} stops`, 'info');
+                } else {
+                    updateResult('routes-result', `❌ "Central Station → Airport Terminal" route not found`, 'error');
+                }
+                
+                return routes;
+            } catch (error) {
+                updateResult('routes-result', `❌ Routes error: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function testSchedules() {
+            clearResult('schedules-result');
+            updateResult('schedules-result', '🔍 Testing schedules API...', 'info');
+            
+            try {
+                const schedules = await fetch(`${API_BASE}/schedules`).then(r => r.json());
+                
+                updateResult('schedules-result', `✅ Schedules loaded: ${schedules.length} schedules`, 'success');
+                
+                const route001Schedules = schedules.filter(s => s.routeId === 'ROUTE001');
+                updateResult('schedules-result', `📅 ROUTE001 schedules: ${route001Schedules.length}`, 'success');
+                
+                route001Schedules.forEach(schedule => {
+                    updateResult('schedules-result', 
+                        `🕐 ${schedule.busNumber} - ${schedule.startTime} to ${schedule.endTime} (${schedule.status})`, 
+                        'info'
+                    );
+                });
+                
+                return schedules;
+            } catch (error) {
+                updateResult('schedules-result', `❌ Schedules error: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function testLocations() {
+            clearResult('locations-result');
+            updateResult('locations-result', '🔍 Testing locations API (this might not exist directly)...', 'info');
+            
+            // Since there's no direct locations API, let's simulate what the frontend does
+            try {
+                const [routes, schedules] = await Promise.all([
+                    fetch(`${API_BASE}/routes`).then(r => r.json()),
+                    fetch(`${API_BASE}/schedules`).then(r => r.json())
+                ]);
+                
+                // Simulate the getLocations logic
+                const scheduledRouteIds = new Set(
+                    schedules.filter(s => s.status === 'active').map(s => s.routeId)
+                );
+                
+                const scheduledRoutes = routes.filter(r => scheduledRouteIds.has(r.id));
+                
+                const locationMap = new Map();
+                
+                scheduledRoutes.forEach(route => {
+                    // Add start point
+                    if (route.startPoint && route.startLat && route.startLon) {
+                        locationMap.set(route.startPoint, { 
+                            name: route.startPoint, 
+                            lat: route.startLat, 
+                            lon: route.startLon 
+                        });
+                    }
+                    
+                    // Add stops
+                    (route.stops || []).forEach(stop => {
+                        locationMap.set(stop.name, { 
+                            name: stop.name, 
+                            lat: stop.lat, 
+                            lon: stop.lon 
+                        });
+                    });
+                    
+                    // Add end point
+                    if (route.endPoint && route.endLat && route.endLon) {
+                        locationMap.set(route.endPoint, { 
+                            name: route.endPoint, 
+                            lat: route.endLat, 
+                            lon: route.endLon 
+                        });
+                    }
+                });
+                
+                const locations = Array.from(locationMap.values());
+                
+                updateResult('locations-result', `✅ Locations generated: ${locations.length} locations`, 'success');
+                
+                const hasCentralStation = locations.some(l => l.name === 'Central Station');
+                const hasAirportTerminal = locations.some(l => l.name === 'Airport Terminal');
+                
+                updateResult('locations-result', 
+                    `📍 Central Station: ${hasCentralStation ? '✅ Found' : '❌ Missing'}`, 
+                    hasCentralStation ? 'success' : 'error'
+                );
+                updateResult('locations-result', 
+                    `📍 Airport Terminal: ${hasAirportTerminal ? '✅ Found' : '❌ Missing'}`, 
+                    hasAirportTerminal ? 'success' : 'error'
+                );
+                
+                return locations;
+            } catch (error) {
+                updateResult('locations-result', `❌ Locations error: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function simulateBusSearch() {
+            clearResult('search-result');
+            updateResult('search-result', '🔍 Simulating bus search for "Central Station → Airport Terminal"...', 'info');
+            
+            try {
+                // Get all the data needed for search
+                const [trips, routes, schedules] = await Promise.all([
+                    fetch(`${API_BASE}/trips/active`).then(r => r.json()),
+                    fetch(`${API_BASE}/routes`).then(r => r.json()),
+                    fetch(`${API_BASE}/schedules`).then(r => r.json())
+                ]);
+                
+                updateResult('search-result', `📊 Data loaded: ${trips.length} trips, ${routes.length} routes, ${schedules.length} schedules`, 'info');
+                
+                // Find the route
+                const route = routes.find(r => 
+                    r.startPoint === 'Central Station' && r.endPoint === 'Airport Terminal'
+                );
+                
+                if (!route) {
+                    updateResult('search-result', `❌ Route not found`, 'error');
+                    return;
+                }
+                
+                updateResult('search-result', `✅ Route found: ${route.name} (${route.id})`, 'success');
+                
+                // Find active trips on this route
+                const routeTrips = trips.filter(t => t.routeId === route.id);
+                updateResult('search-result', `🚌 Active trips on route: ${routeTrips.length}`, routeTrips.length > 0 ? 'success' : 'error');
+                
+                routeTrips.forEach(trip => {
+                    const gpsAge = Date.now() - trip.currentGps.timestamp;
+                    const gpsAgeMinutes = Math.round(gpsAge / (1000 * 60));
+                    const isFresh = gpsAge < 5 * 60 * 1000;
+                    
+                    updateResult('search-result', 
+                        `🚌 ${trip.busNumber} - Progress: ${trip.progress}%, Speed: ${trip.currentGps.speed} km/h, GPS: ${isFresh ? 'Fresh' : 'Stale'}`, 
+                        isFresh ? 'success' : 'error'
+                    );
+                });
+                
+                // Find schedules for this route
+                const routeSchedules = schedules.filter(s => s.routeId === route.id && s.status === 'active');
+                updateResult('search-result', `📅 Active schedules: ${routeSchedules.length}`, 'info');
+                
+                if (routeTrips.length > 0) {
+                    updateResult('search-result', `🎉 BUSES SHOULD BE VISIBLE! ${routeTrips.length} active bus(es) found`, 'success');
+                } else if (routeSchedules.length > 0) {
+                    updateResult('search-result', `📅 Scheduled buses available (${routeSchedules.length})`, 'info');
+                } else {
+                    updateResult('search-result', `❌ No buses or schedules found`, 'error');
+                }
+                
+            } catch (error) {
+                updateResult('search-result', `❌ Search simulation error: ${error.message}`, 'error');
+            }
+        }
+
+        async function runCompleteTest() {
+            clearResult('complete-result');
+            updateResult('complete-result', '🧪 Running complete passenger bus search test...', 'info');
+            
+            const trips = await testActiveTrips();
+            const routes = await testRoutes();
+            const schedules = await testSchedules();
+            const locations = await testLocations();
+            await simulateBusSearch();
+            
+            // Summary
+            const freshTrips = trips.filter(t => (Date.now() - t.currentGps.timestamp) < 5 * 60 * 1000);
+            const centralToAirportRoute = routes.find(r => 
+                r.startPoint === 'Central Station' && r.endPoint === 'Airport Terminal'
+            );
+            const route001Trips = trips.filter(t => t.routeId === 'ROUTE001');
+            
+            updateResult('complete-result', '📊 Test Summary:', 'info');
+            updateResult('complete-result', `✅ Fresh GPS trips: ${freshTrips.length}/${trips.length}`, freshTrips.length > 0 ? 'success' : 'error');
+            updateResult('complete-result', `✅ Central Station → Airport Terminal route: ${centralToAirportRoute ? 'Found' : 'Missing'}`, centralToAirportRoute ? 'success' : 'error');
+            updateResult('complete-result', `✅ Active trips on ROUTE001: ${route001Trips.length}`, route001Trips.length > 0 ? 'success' : 'error');
+            
+            if (freshTrips.length > 0 && centralToAirportRoute && route001Trips.length > 0) {
+                updateResult('complete-result', '🎉 PASSENGER APP SHOULD NOW SHOW BUSES!', 'success');
+                updateResult('complete-result', '✅ All conditions met for bus search to work', 'success');
+            } else {
+                updateResult('complete-result', '❌ Some conditions not met - buses may not appear', 'error');
+            }
+        }
+
+        // Auto-run basic test on page load
+        window.onload = function() {
+            setTimeout(() => {
+                updateResult('complete-result', '🔄 Auto-running complete test...', 'info');
+                runCompleteTest();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

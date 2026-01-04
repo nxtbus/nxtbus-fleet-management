@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/admin/(.*)",
+      "dest": "/admin/$1"
+    },
+    {
+      "src": "/admin",
+      "dest": "/admin/index.html"
+    },
+    {
+      "src": "/owner/(.*)",
+      "dest": "/owner/$1"
+    },
+    {
+      "src": "/owner",
+      "dest": "/owner/index.html"
+    },
+    {
+      "src": "/driver/(.*)",
+      "dest": "/driver/$1"
+    },
+    {
+      "src": "/driver",
+      "dest": "/driver/index.html"
+    },
+    {
+      "src": "/passenger/(.*)",
+      "dest": "/$1"
+    },
+    {
+      "src": "/passenger",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

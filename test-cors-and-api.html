@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS and API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        button { padding: 12px 24px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .result.success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .result.info { background: #d1ecf1; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 CORS and API Test</h1>
+        <p>Testing API connectivity from browser (port 5174 → port 3001)</p>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="testCORS()">🌐 Test CORS</button>
+            <button onclick="testActiveTrips()">🚌 Test Active Trips</button>
+            <button onclick="testRoutes()">🗺️ Test Routes</button>
+            <button onclick="testBusSearch()">🔍 Test Bus Search Logic</button>
+            <button onclick="runAllTests()">🧪 Run All Tests</button>
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+
+        function updateResult(message, type = 'info') {
+            const element = document.getElementById('test-results');
+            const resultClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="result ${resultClass}">${message}</div>`;
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        async function testCORS() {
+            updateResult('🌐 Testing CORS from port 5174...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/trips/active`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    updateResult('✅ CORS working - API accessible from browser', 'success');
+                    return true;
+                } else {
+                    updateResult(`❌ CORS issue - Response status: ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    updateResult(`❌ CORS blocked: ${error.message}`, 'error');
+                } else {
+                    updateResult(`❌ Network error: ${error.message}`, 'error');
+                }
+                return false;
+            }
+        }
+
+        async function testActiveTrips() {
+            updateResult('🚌 Testing active trips API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/trips/active`);
+                const trips = await response.json();
+                
+                updateResult(`✅ Active trips loaded: ${trips.length} trips`, 'success');
+                
+                const now = Date.now();
+                let freshCount = 0;
+                
+                trips.forEach(trip => {
+                    const gpsAge = now - trip.currentGps.timestamp;
+                    const gpsAgeMinutes = Math.round(gpsAge / (1000 * 60));
+                    const isFresh = gpsAge < 5 * 60 * 1000;
+                    
+                    if (isFresh) {
+                        freshCount++;
+                        updateResult(`✅ ${trip.busNumber} - GPS fresh (${gpsAgeMinutes} min)`, 'success');
+                    } else {
+                        updateResult(`❌ ${trip.busNumber} - GPS stale (${gpsAgeMinutes} min)`, 'error');
+                    }
+                });
+                
+                updateResult(`📊 Fresh GPS trips: ${freshCount}/${trips.length}`, freshCount > 0 ? 'success' : 'error');
+                return trips;
+                
+            } catch (error) {
+                updateResult(`❌ Active trips error: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function testRoutes() {
+            updateResult('🗺️ Testing routes API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/routes`);
+                const routes = await response.json();
+                
+                updateResult(`✅ Routes loaded: ${routes.length} routes`, 'success');
+                
+                const targetRoute = routes.find(r => 
+                    r.startPoint === 'Central Station' && r.endPoint === 'Airport Terminal'
+                );
+                
+                if (targetRoute) {
+                    updateResult(`✅ Target route found: ${targetRoute.name} (${targetRoute.id})`, 'success');
+                    return routes;
+                } else {
+                    updateResult('❌ Target route not found', 'error');
+                    return routes;
+                }
+                
+            } catch (error) {
+                updateResult(`❌ Routes error: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function testBusSearch() {
+            updateResult('🔍 Testing complete bus search logic...', 'info');
+            
+            try {
+                // Get all data
+                const [trips, routes] = await Promise.all([
+                    fetch(`${API_BASE}/trips/active`).then(r => r.json()),
+                    fetch(`${API_BASE}/routes`).then(r => r.json())
+                ]);
+                
+                // Simulate fetchActiveBuses logic
+                const GPS_FRESHNESS_MS = 5 * 60 * 1000;
+                const now = Date.now();
+                
+                const freshTrips = trips.filter(trip => {
+                    if (!trip.currentGps) return false;
+                    const gpsAge = now - trip.currentGps.timestamp;
+                    return gpsAge < GPS_FRESHNESS_MS;
+                });
+                
+                updateResult(`📡 Fresh trips after GPS filter: ${freshTrips.length}/${trips.length}`, 'info');
+                
+                // Build live buses
+                const liveBuses = freshTrips.map(trip => {
+                    const route = routes.find(r => r.id === trip.routeId);
+                    return {
+                        id: trip.tripId,
+                        busNumber: trip.busNumber,
+                        routeId: trip.routeId,
+                        route: route,
+                        currentGps: trip.currentGps,
+                        isLive: true
+                    };
+                }).filter(bus => bus.route);
+                
+                updateResult(`🚌 Live buses built: ${liveBuses.length}`, 'info');
+                
+                // Test search for Central Station → Airport Terminal
+                const fromLoc = { name: 'Central Station' };
+                const toLoc = { name: 'Airport Terminal' };
+                
+                const searchResults = liveBuses.filter(bus => {
+                    const route = bus.route;
+                    
+                    const hasFrom = route.startPoint === fromLoc.name || 
+                                   route.endPoint === fromLoc.name ||
+                                   (route.stops || []).some(s => s.name === fromLoc.name);
+                    
+                    const hasTo = route.startPoint === toLoc.name || 
+                                 route.endPoint === toLoc.name ||
+                                 (route.stops || []).some(s => s.name === toLoc.name);
+                    
+                    return hasFrom && hasTo;
+                });
+                
+                if (searchResults.length > 0) {
+                    updateResult(`🎉 SEARCH SUCCESS! Found ${searchResults.length} bus(es)`, 'success');
+                    searchResults.forEach(bus => {
+                        updateResult(`🚌 ${bus.busNumber} - ${bus.route.name}`, 'success');
+                    });
+                    updateResult('✅ Passenger app should show these buses!', 'success');
+                } else {
+                    updateResult('❌ No buses found in search', 'error');
+                }
+                
+                return searchResults;
+                
+            } catch (error) {
+                updateResult(`❌ Bus search test error: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            updateResult('🧪 Running complete test suite...', 'info');
+            
+            const corsOk = await testCORS();
+            if (!corsOk) {
+                updateResult('❌ CORS failed - stopping tests', 'error');
+                return;
+            }
+            
+            await testActiveTrips();
+            await testRoutes();
+            const searchResults = await testBusSearch();
+            
+            updateResult('📋 Test Summary:', 'info');
+            if (searchResults.length > 0) {
+                updateResult('🎉 ALL TESTS PASSED - Bus search should work!', 'success');
+            } else {
+                updateResult('❌ Tests failed - Bus search may not work', 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        window.onload = function() {
+            setTimeout(runAllTests, 1000);
+        };
+    </script>
+</body>
+</html>

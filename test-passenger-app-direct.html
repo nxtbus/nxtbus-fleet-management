@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct Passenger App Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        button { padding: 15px 30px; margin: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #218838; }
+        .result { margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .result.success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .result.info { background: #d1ecf1; border: 1px solid #bee5eb; }
+        iframe { width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0; }
+        .links { background: #e9ecef; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .links a { display: inline-block; margin: 5px 10px; padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 3px; }
+        .links a:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚌 Direct Passenger App Test</h1>
+        <p>Testing the passenger app with fresh GPS data</p>
+        
+        <div style="text-align: center;">
+            <button onclick="testAPI()">🧪 Test API First</button>
+            <button onclick="openPassengerApp()">🚌 Open Passenger App</button>
+            <button onclick="testDirectSearch()">🔍 Test Direct Search</button>
+        </div>
+        
+        <div id="test-results"></div>
+        
+        <div class="links">
+            <h3>🔗 Quick Links</h3>
+            <a href="http://localhost:5174/passenger" target="_blank">Passenger App</a>
+            <a href="http://localhost:5174/passenger?from=Central%20Station&to=Airport%20Terminal" target="_blank">Direct Search</a>
+            <a href="http://localhost:3001/api/trips/active" target="_blank">API: Active Trips</a>
+            <a href="http://localhost:3001/api/routes" target="_blank">API: Routes</a>
+        </div>
+        
+        <div id="app-frame"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+
+        function updateResult(message, type = 'info') {
+            const element = document.getElementById('test-results');
+            const resultClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="result ${resultClass}">${message}</div>`;
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        async function testAPI() {
+            clearResults();
+            updateResult('🧪 Testing API with fresh GPS data...', 'info');
+            
+            try {
+                // Test active trips
+                const trips = await fetch(`${API_BASE}/trips/active`).then(r => r.json());
+                updateResult(`✅ Active trips: ${trips.length} trips loaded`, 'success');
+                
+                const now = Date.now();
+                let freshCount = 0;
+                
+                trips.forEach(trip => {
+                    const gpsAge = now - trip.currentGps.timestamp;
+                    const gpsAgeSeconds = Math.round(gpsAge / 1000);
+                    const isFresh = gpsAge < 5 * 60 * 1000;
+                    
+                    if (isFresh) {
+                        freshCount++;
+                        updateResult(`✅ ${trip.busNumber} - GPS fresh (${gpsAgeSeconds}s old)`, 'success');
+                    } else {
+                        updateResult(`❌ ${trip.busNumber} - GPS stale (${gpsAgeSeconds}s old)`, 'error');
+                    }
+                });
+                
+                if (freshCount > 0) {
+                    updateResult(`🎉 ${freshCount} buses have fresh GPS data!`, 'success');
+                    updateResult('✅ API is ready - passenger app should work now', 'success');
+                } else {
+                    updateResult('❌ No fresh GPS data - buses won\'t appear', 'error');
+                }
+                
+                // Test routes
+                const routes = await fetch(`${API_BASE}/routes`).then(r => r.json());
+                const targetRoute = routes.find(r => 
+                    r.startPoint === 'Central Station' && r.endPoint === 'Airport Terminal'
+                );
+                
+                if (targetRoute) {
+                    updateResult(`✅ Target route exists: ${targetRoute.name}`, 'success');
+                } else {
+                    updateResult('❌ Target route not found', 'error');
+                }
+                
+            } catch (error) {
+                updateResult(`❌ API test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function openPassengerApp() {
+            updateResult('🚌 Opening passenger app in iframe...', 'info');
+            const frameDiv = document.getElementById('app-frame');
+            frameDiv.innerHTML = '<iframe src="http://localhost:5174/passenger"></iframe>';
+            updateResult('✅ Passenger app loaded below', 'success');
+        }
+
+        function testDirectSearch() {
+            updateResult('🔍 Opening direct search in iframe...', 'info');
+            const frameDiv = document.getElementById('app-frame');
+            frameDiv.innerHTML = '<iframe src="http://localhost:5174/passenger?from=Central%20Station&to=Airport%20Terminal"></iframe>';
+            updateResult('✅ Direct search loaded - should show buses if working', 'success');
+        }
+
+        // Auto-run API test on page load
+        window.onload = function() {
+            setTimeout(testAPI, 1000);
+        };
+    </script>
+</body>
+</html>
