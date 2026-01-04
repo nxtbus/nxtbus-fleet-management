@@ -108,12 +108,23 @@ class DatabaseService {
       return { rows: [] };
     }
     
-    const client = await this.pool.connect();
     try {
-      const result = await client.query(text, params);
-      return result;
-    } finally {
-      client.release();
+      const client = await this.pool.connect();
+      try {
+        const result = await client.query(text, params);
+        return result;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('❌ Database query failed:', error.message);
+      console.warn('⚠️ Switching to fallback mode due to database error');
+      
+      // Switch to fallback mode on database errors
+      this.fallbackMode = true;
+      await this.initializeFallbackData();
+      
+      return { rows: [] };
     }
   }
 
@@ -123,11 +134,25 @@ class DatabaseService {
     if (this.fallbackMode) {
       await this.initializeFallbackData();
       console.log('📦 Using fallback data for buses');
-      return fallbackData.buses.filter(b => b.status === 'active');
+      return fallbackData.buses;
     }
     
-    const result = await this.query('SELECT * FROM buses WHERE status = $1 ORDER BY created_at DESC', ['active']);
-    return result.rows;
+    try {
+      const result = await this.query('SELECT * FROM buses ORDER BY created_at DESC');
+      
+      // If query succeeded but returned empty, check if we should use fallback
+      if (result.rows.length === 0) {
+        console.warn('⚠️ No buses found in database, using fallback data');
+        await this.initializeFallbackData();
+        return fallbackData.buses;
+      }
+      
+      return result.rows;
+    } catch (error) {
+      console.error('❌ getBuses failed, using fallback data:', error.message);
+      await this.initializeFallbackData();
+      return fallbackData.buses;
+    }
   }
 
   async getBusById(id) {
@@ -166,12 +191,27 @@ class DatabaseService {
   
   async getRoutes() {
     if (this.fallbackMode) {
+      await this.initializeFallbackData();
       console.log('📦 Using fallback data for routes');
-      return fallbackData.routes.filter(r => r.status === 'active');
+      return fallbackData.routes;
     }
     
-    const result = await this.query('SELECT * FROM routes WHERE status = $1 ORDER BY created_at DESC', ['active']);
-    return result.rows;
+    try {
+      const result = await this.query('SELECT * FROM routes ORDER BY created_at DESC');
+      
+      // If query succeeded but returned empty, check if we should use fallback
+      if (result.rows.length === 0) {
+        console.warn('⚠️ No routes found in database, using fallback data');
+        await this.initializeFallbackData();
+        return fallbackData.routes;
+      }
+      
+      return result.rows;
+    } catch (error) {
+      console.error('❌ getRoutes failed, using fallback data:', error.message);
+      await this.initializeFallbackData();
+      return fallbackData.routes;
+    }
   }
 
   async getRouteById(id) {
@@ -368,12 +408,27 @@ class DatabaseService {
   
   async getDelays() {
     if (this.fallbackMode) {
+      await this.initializeFallbackData();
       console.log('📦 Using fallback data for delays');
-      return fallbackData.delays.filter(d => d.status === 'active');
+      return fallbackData.delays;
     }
     
-    const result = await this.query('SELECT * FROM delays WHERE status = $1 ORDER BY reported_at DESC', ['active']);
-    return result.rows;
+    try {
+      const result = await this.query('SELECT * FROM delays ORDER BY reported_at DESC');
+      
+      // If query succeeded but returned empty, use fallback
+      if (result.rows.length === 0) {
+        console.warn('⚠️ No delays found in database, using fallback data');
+        await this.initializeFallbackData();
+        return fallbackData.delays;
+      }
+      
+      return result.rows;
+    } catch (error) {
+      console.error('❌ getDelays failed, using fallback data:', error.message);
+      await this.initializeFallbackData();
+      return fallbackData.delays;
+    }
   }
 
   async addDelay(delayData) {
@@ -458,12 +513,27 @@ class DatabaseService {
   
   async getDrivers() {
     if (this.fallbackMode) {
+      await this.initializeFallbackData();
       console.log('📦 Using fallback data for drivers');
-      return fallbackData.drivers.filter(d => d.status === 'active');
+      return fallbackData.drivers;
     }
     
-    const result = await this.query('SELECT * FROM drivers WHERE status = $1 ORDER BY created_at DESC', ['active']);
-    return result.rows;
+    try {
+      const result = await this.query('SELECT * FROM drivers ORDER BY created_at DESC');
+      
+      // If query succeeded but returned empty, check if we should use fallback
+      if (result.rows.length === 0) {
+        console.warn('⚠️ No drivers found in database, using fallback data');
+        await this.initializeFallbackData();
+        return fallbackData.drivers;
+      }
+      
+      return result.rows;
+    } catch (error) {
+      console.error('❌ getDrivers failed, using fallback data:', error.message);
+      await this.initializeFallbackData();
+      return fallbackData.drivers;
+    }
   }
 
   async getDriverById(id) {
