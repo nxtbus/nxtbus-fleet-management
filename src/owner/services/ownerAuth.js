@@ -1,0 +1,121 @@
+/**
+ * Owner Authentication Service
+ * Manages owner login with phone and PIN
+ */
+
+// API Base URL - Auto-detect environment
+const getHost = () => {
+  // If running in Capacitor (mobile app), use network IP
+  if (window.Capacitor?.isNativePlatform()) {
+    return '10.77.155.222';
+  }
+  // If accessing from browser on same network
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return window.location.hostname;
+  }
+  // Default to localhost for local development
+  return 'localhost';
+};
+
+const HOST = getHost();
+const API_BASE = `http://${HOST}:3001/api`;
+
+// Store current owner in localStorage
+const OWNER_KEY = 'nxtbus_current_owner';
+const OWNER_SESSION_KEY = 'nxtbus_owner_session';
+
+// Login owner with phone and PIN
+export async function loginOwner(phone, pin) {
+  try {
+    const response = await fetch(`${API_BASE}/auth/owner/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, pin })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Save session
+      localStorage.setItem(OWNER_KEY, JSON.stringify(data.owner));
+      localStorage.setItem(OWNER_SESSION_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        ownerId: data.owner.id
+      }));
+      return { success: true, owner: data.owner };
+    } else {
+      return { success: false, message: data.message };
+    }
+  } catch (error) {
+    console.error('Owner login error:', error);
+    return { success: false, message: 'Server error. Please try again.' };
+  }
+}
+
+// Get all owners from API (for display purposes only, no auth)
+export async function getAllOwners() {
+  try {
+    const response = await fetch(`${API_BASE}/owners`);
+    if (!response.ok) throw new Error('Failed to fetch owners');
+    const owners = await response.json();
+    // Return owners without PIN for security
+    return owners.map(({ pin, ...owner }) => owner);
+  } catch (error) {
+    console.error('Error fetching owners:', error);
+    return [];
+  }
+}
+
+// Get current logged-in owner
+export function getCurrentOwner() {
+  const stored = localStorage.getItem(OWNER_KEY);
+  const session = localStorage.getItem(OWNER_SESSION_KEY);
+  
+  if (stored && session) {
+    try {
+      const sessionData = JSON.parse(session);
+      // Session valid for 24 hours
+      if (Date.now() - sessionData.timestamp < 24 * 60 * 60 * 1000) {
+        return JSON.parse(stored);
+      } else {
+        // Session expired
+        logoutOwner();
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+// Set current owner (for backward compatibility)
+export function setCurrentOwner(owner) {
+  if (owner) {
+    localStorage.setItem(OWNER_KEY, JSON.stringify(owner));
+    localStorage.setItem(OWNER_SESSION_KEY, JSON.stringify({
+      timestamp: Date.now(),
+      ownerId: owner.id
+    }));
+  } else {
+    localStorage.removeItem(OWNER_KEY);
+    localStorage.removeItem(OWNER_SESSION_KEY);
+  }
+}
+
+// Logout current owner
+export function logoutOwner() {
+  localStorage.removeItem(OWNER_KEY);
+  localStorage.removeItem(OWNER_SESSION_KEY);
+}
+
+// Get current owner ID
+export function getCurrentOwnerId() {
+  const owner = getCurrentOwner();
+  return owner?.id || null;
+}
+
+// Check if owner is logged in
+export function isOwnerLoggedIn() {
+  return getCurrentOwner() !== null;
+}

@@ -1,0 +1,20 @@
+{
+  "appId": "com.nxtbus.driver",
+  "appName": "NxtBus Driver",
+  "webDir": "dist-driver",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "path": "android-driver"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#1a1a2e",
+      "showSpinner": false
+    }
+  }
+}

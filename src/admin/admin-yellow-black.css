@@ -1,0 +1,269 @@
+/* ================================
+   ADMIN YELLOW / BLACK THEME
+   ================================ */
+
+:root {
+  --yellow: #FFC107;
+  --yellow-soft: rgba(255,193,7,0.12);
+  --black-main: #0B0B0B;
+  --black-card: #141414;
+  --black-hover: #1C1C1C;
+  --border-dark: #262626;
+
+  --text-main: #FFFFFF;
+  --text-muted: #A0A0A0;
+
+  --danger: #FF3B3B;
+  --success: #2ECC71;
+  --warning: #FF9800;
+}
+
+/* === GLOBAL === */
+body,
+.admin-app {
+  background: var(--black-main);
+  color: var(--text-main);
+}
+
+/* === SIDEBAR === */
+.admin-sidebar {
+  background: var(--black-main);
+  border-right: 1px solid var(--border-dark);
+}
+
+.sidebar-title h1 {
+  color: var(--yellow);
+}
+
+.sidebar-title span {
+  color: var(--text-muted);
+}
+
+.nav-item {
+  color: var(--text-muted);
+}
+
+.nav-item:hover {
+  background: var(--yellow-soft);
+  color: var(--text-main);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, var(--yellow), #ffb300);
+  color: #000;
+}
+
+.nav-item.active .nav-icon {
+  color: #000;
+}
+
+/* === HEADER === */
+.admin-header {
+  background: rgba(15,15,15,0.85);
+  border-bottom: 1px solid var(--border-dark);
+  backdrop-filter: blur(16px);
+}
+
+.admin-header h2 {
+  color: var(--text-main);
+}
+
+.admin-user {
+  color: var(--text-muted);
+}
+
+.logout-btn {
+  background: var(--yellow);
+  color: #000;
+}
+
+.logout-btn:hover {
+  background: #ffb300;
+}
+
+/* === CONTENT AREA === */
+.admin-content {
+  background: radial-gradient(
+    circle at top,
+    rgba(255,193,7,0.04),
+    transparent 60%
+  );
+}
+
+/* === STAT CARDS === */
+.stat-card {
+  background: var(--black-card);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+.stat-card:hover {
+  background: var(--black-hover);
+}
+
+.stat-card.primary {
+  background: linear-gradient(135deg, var(--yellow), #ffb300);
+  color: #000;
+}
+
+.stat-card.primary .stat-value,
+.stat-card.primary .stat-label {
+  color: #000;
+}
+
+.stat-icon {
+  color: var(--yellow);
+}
+
+.stat-value {
+  color: var(--text-main);
+}
+
+.stat-label {
+  color: var(--text-muted);
+}
+
+/* === TABLES === */
+.table-container {
+  background: var(--black-card);
+  border: 1px solid var(--border-dark);
+}
+
+th {
+  background: #111;
+  color: var(--text-muted);
+}
+
+td {
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+tr:hover {
+  background: linear-gradient(
+    to right,
+    rgba(255,193,7,0.08),
+    transparent
+  );
+}
+
+/* === BADGES === */
+.badge-success {
+  background: rgba(46,204,113,0.15);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: rgba(255,152,0,0.15);
+  color: var(--warning);
+}
+
+.badge-danger {
+  background: rgba(255,59,59,0.15);
+  color: var(--danger);
+}
+
+/* === FORMS === */
+input,
+select,
+textarea {
+  background: #111;
+  color: var(--text-main);
+  border: 2px solid var(--border-dark);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px rgba(255,193,7,0.15);
+}
+
+/* === BUTTONS === */
+.btn-primary {
+  background: var(--yellow);
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: #ffb300;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--yellow);
+  border: 1px solid var(--yellow);
+}
+
+.btn-secondary:hover {
+  background: var(--yellow);
+  color: #000;
+}
+
+/* === ALERTS === */
+.delay-card,
+.notification-card,
+.call-alert-card {
+  background: var(--black-card);
+  border-left: 4px solid var(--yellow);
+}
+
+.call-alert-card.unacknowledged {
+  border-left-color: var(--danger);
+  background: rgba(255,59,59,0.08);
+}
+
+/* === MODALS === */
+.modal,
+.modal-content {
+  background: var(--black-card);
+  border: 1px solid var(--border-dark);
+}
+
+.modal h3 {
+  color: var(--yellow);
+}
+
+/* === QUICK ACTIONS === */
+.action-buttons button {
+  background: transparent;
+  border: 1px dashed var(--yellow);
+  color: var(--text-main);
+}
+
+.action-buttons button:hover {
+  background: var(--yellow);
+  color: #000;
+}
+
+/* === LOGIN SCREEN === */
+.admin-login-container {
+  background: radial-gradient(
+    circle at top,
+    rgba(255,193,7,0.08),
+    var(--black-main)
+  );
+}
+
+.login-card {
+  background: var(--black-card);
+  border: 1px solid var(--border-dark);
+}
+
+.login-form h2 {
+  color: var(--yellow);
+}
+
+.login-btn {
+  background: var(--yellow);
+  color: #000;
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--yellow);
+  border-radius: 6px;
+}

@@ -1,0 +1,728 @@
+/* Driver Theme - Orange/Red Accent with Mobile-First Design */
+:root {
+  /* Core Colors - Driver */
+  --bg-main: #1A1A2E;
+  --bg-card: #16213E;
+  --bg-card-hover: #1E2A47;
+  --bg-border: #2A3441;
+  
+  /* Orange/Red Accent System - Driver */
+  --orange-primary: #FF6B35;
+  --orange-secondary: #FF8C42;
+  --orange-accent: #FF6B35;
+  --orange-glow: rgba(255, 107, 53, 0.08);
+  --orange-border: rgba(255, 107, 53, 0.3);
+  
+  /* Text Colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #B8C5D1;
+  --text-muted: #8A9BA8;
+  
+  /* Status Colors */
+  --danger: #E53E3E;
+  --success: #38A169;
+  --warning: #D69E2E;
+  
+  /* Interactive States */
+  --hover-scale: 1.02;
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Shadows */
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glow-orange: 0 0 30px rgba(255, 107, 53, 0.3);
+}
+
+/* Global Reset for Driver App */
+body.driver-theme {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Mobile-First Background Shapes */
+body.driver-theme::before {
+  content: '';
+  position: fixed;
+  top: -30%;
+  left: -40%;
+  width: 80%;
+  height: 80%;
+  background: linear-gradient(135deg, var(--orange-primary) 0%, var(--orange-secondary) 100%);
+  border-radius: 50%;
+  z-index: -2;
+  opacity: 0.03;
+}
+
+body.driver-theme::after {
+  content: '';
+  position: fixed;
+  bottom: -40%;
+  right: -30%;
+  width: 70%;
+  height: 70%;
+  background: linear-gradient(225deg, var(--orange-primary) 0%, var(--orange-secondary) 100%);
+  border-radius: 50%;
+  z-index: -2;
+  opacity: 0.02;
+}
+
+/* Driver App Container */
+.driver-theme .driver-app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-main);
+  color: var(--text-primary);
+}
+
+/* Driver Header */
+.driver-theme .driver-header {
+  background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-card) 100%);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.driver-theme .header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.driver-theme .brand-icon {
+  font-size: 1.8rem;
+  background: var(--orange-primary);
+  padding: 8px;
+  border-radius: 12px;
+  color: var(--bg-main);
+}
+
+.driver-theme .brand-text h1 {
+  font-size: 1.3rem;
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+
+.driver-theme .brand-subtitle {
+  font-size: 0.75rem;
+  color: var(--orange-primary);
+  font-weight: 500;
+}
+
+.driver-theme .logout-btn {
+  background: var(--orange-primary);
+  border: none;
+  color: var(--bg-main);
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.driver-theme .logout-btn:hover {
+  background: var(--orange-secondary);
+  transform: translateY(-1px);
+}
+
+/* Driver Content */
+.driver-theme .driver-content {
+  padding: 20px;
+  background: var(--bg-main);
+  min-height: calc(100vh - 70px);
+}
+
+/* Login Screen */
+.driver-theme .driver-login {
+  text-align: center;
+}
+
+.driver-theme .login-header {
+  margin-bottom: 32px;
+}
+
+.driver-theme .login-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  background: var(--orange-primary);
+  padding: 20px;
+  border-radius: 24px;
+  display: inline-block;
+  color: var(--bg-main);
+}
+
+.driver-theme .login-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.driver-theme .login-header p {
+  color: var(--text-secondary);
+}
+
+.driver-theme .login-form {
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .login-form .input-group {
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.driver-theme .login-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.driver-theme .login-form input {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid var(--bg-border);
+  border-radius: 12px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.driver-theme .login-form input:focus {
+  outline: none;
+  border-color: var(--orange-primary);
+  box-shadow: 0 0 0 4px var(--orange-glow);
+}
+
+.driver-theme .login-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--orange-primary);
+  color: var(--bg-main);
+  border: none;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.driver-theme .login-btn:hover {
+  background: var(--orange-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--glow-orange);
+}
+
+.driver-theme .login-btn:disabled {
+  background: var(--bg-border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Bus Selection */
+.driver-theme .bus-selection h2 {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.driver-theme .bus-card,
+.driver-theme .route-card,
+.driver-theme .schedule-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-left: 4px solid var(--orange-primary);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .bus-card:hover,
+.driver-theme .route-card:hover,
+.driver-theme .schedule-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+  background: var(--bg-card-hover);
+}
+
+.driver-theme .bus-card.selected,
+.driver-theme .route-card.selected,
+.driver-theme .schedule-card.selected {
+  border-left-color: var(--orange-secondary);
+  background: var(--orange-glow);
+  border-color: var(--orange-primary);
+}
+
+.driver-theme .bus-number {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.driver-theme .bus-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.driver-theme .bus-type {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--bg-main);
+  color: var(--text-secondary);
+}
+
+.driver-theme .bus-type.ac {
+  background: var(--success);
+  color: white;
+}
+
+/* Trip Control */
+.driver-theme .trip-control {
+  color: var(--text-primary);
+}
+
+.driver-theme .trip-info-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .trip-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.driver-theme .status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.driver-theme .status-badge.active {
+  background: rgba(56, 161, 105, 0.2);
+  color: var(--success);
+}
+
+.driver-theme .status-badge.idle {
+  background: var(--orange-glow);
+  color: var(--orange-primary);
+}
+
+.driver-theme .trip-info-header {
+  background: linear-gradient(135deg, var(--orange-primary), var(--orange-secondary));
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: var(--bg-main);
+}
+
+.driver-theme .trip-bus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.driver-theme .bus-icon {
+  font-size: 2rem;
+}
+
+.driver-theme .bus-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.driver-theme .trip-route {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+/* GPS Status */
+.driver-theme .gps-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .gps-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.driver-theme .gps-status.active .gps-indicator {
+  background: var(--success);
+  animation: pulse-gps 1.5s infinite;
+}
+
+@keyframes pulse-gps {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Trip Status Card */
+.driver-theme .trip-status-card {
+  background: var(--bg-card);
+  padding: 32px 24px;
+  border-radius: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .status-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  color: var(--orange-primary);
+}
+
+.driver-theme .status-icon.pulsing {
+  animation: pulse-icon 1s infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Trip Metrics */
+.driver-theme .trip-metrics {
+  display: flex;
+  justify-content: space-around;
+  margin: 24px 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--bg-border);
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.driver-theme .metric {
+  text-align: center;
+}
+
+.driver-theme .metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--orange-primary);
+}
+
+.driver-theme .metric-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Speed Display */
+.driver-theme .speed-display {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .speed-value {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.driver-theme .speed-value.warning {
+  color: var(--warning);
+}
+
+.driver-theme .speed-value.danger {
+  color: var(--danger);
+}
+
+.driver-theme .speed-unit {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* Buttons */
+.driver-theme .btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+
+.driver-theme .btn-primary {
+  background: linear-gradient(135deg, var(--orange-primary), var(--orange-secondary));
+  color: var(--bg-main);
+}
+
+.driver-theme .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-orange);
+}
+
+.driver-theme .btn-primary:disabled {
+  background: var(--bg-border);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.driver-theme .btn-secondary {
+  background: transparent;
+  border: 2px solid var(--bg-border);
+  color: var(--text-secondary);
+}
+
+.driver-theme .btn-start {
+  background: linear-gradient(135deg, var(--success), #2F855A);
+  color: white;
+  font-size: 1.2rem;
+  padding: 20px;
+}
+
+.driver-theme .btn-end {
+  background: linear-gradient(135deg, var(--danger), #C53030);
+  color: white;
+  font-size: 1.1rem;
+}
+
+.driver-theme .start-trip-btn,
+.driver-theme .end-trip-btn {
+  width: 100%;
+  padding: 18px;
+  border: none;
+  border-radius: 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.driver-theme .start-trip-btn {
+  background: var(--orange-primary);
+  color: var(--bg-main);
+}
+
+.driver-theme .start-trip-btn:hover {
+  background: var(--orange-secondary);
+  transform: translateY(-2px);
+}
+
+.driver-theme .end-trip-btn {
+  background: var(--danger);
+  color: white;
+}
+
+.driver-theme .end-trip-btn:hover {
+  background: #C53030;
+}
+
+/* Trip Cards */
+.driver-theme .trip-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+  margin-bottom: 12px;
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .trip-card:hover {
+  background: var(--bg-card-hover);
+}
+
+.driver-theme .trip-card.selected {
+  border-color: var(--orange-primary);
+  background: var(--orange-glow);
+}
+
+.driver-theme .trip-card.active {
+  border-left: 4px solid var(--success);
+}
+
+.driver-theme .trip-time-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.driver-theme .start-time {
+  color: var(--success);
+}
+
+.driver-theme .time-separator {
+  color: var(--text-muted);
+}
+
+.driver-theme .end-time {
+  color: var(--orange-primary);
+}
+
+/* Map Container */
+.driver-theme .map-container {
+  background: var(--bg-card);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .trip-map {
+  height: 300px;
+  width: 100%;
+}
+
+/* Error Banner */
+.driver-theme .error-banner {
+  background: rgba(229, 62, 62, 0.1);
+  color: var(--danger);
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--danger);
+}
+
+/* View Toggle */
+.driver-theme .view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: var(--bg-card);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--bg-border);
+}
+
+.driver-theme .view-toggle button {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.driver-theme .view-toggle button.active {
+  background: var(--orange-primary);
+  color: var(--bg-main);
+}
+
+/* Typography */
+.driver-theme h1, 
+.driver-theme h2, 
+.driver-theme h3, 
+.driver-theme h4, 
+.driver-theme h5, 
+.driver-theme h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0;
+}
+
+.driver-theme .text-primary { color: var(--text-primary); }
+.driver-theme .text-secondary { color: var(--text-secondary); }
+.driver-theme .text-muted { color: var(--text-muted); }
+.driver-theme .text-orange { color: var(--orange-primary); font-weight: 600; }
+.driver-theme .text-danger { color: var(--danger); }
+.driver-theme .text-success { color: var(--success); }
+
+/* Loading States */
+.driver-theme .loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.driver-theme .loading-state .spinner {
+  font-size: 3rem;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+  color: var(--orange-primary);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* No Data States */
+.driver-theme .no-data {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  background: var(--orange-glow);
+  border-radius: 12px;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .driver-theme .driver-content {
+    padding: 16px;
+  }
+  
+  .driver-theme .trip-info-header {
+    padding: 16px;
+  }
+  
+  .driver-theme .speed-display {
+    padding: 20px;
+  }
+}

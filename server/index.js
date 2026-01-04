@@ -1,0 +1,1309 @@
+/**
+ * NxtBus Backend Server - Production Ready
+ * Enhanced with security, validation, logging, and error handling
+ */
+
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const compression = require('compression');
+const fs = require('fs');
+const path = require('path');
+
+// Import middleware
+const { authenticate, authorize, handleValidationErrors, securityHeaders } = require('./middleware/auth');
+const { 
+  dynamicRateLimit,
+  authRateLimit, 
+  gpsRateLimit, 
+  feedbackRateLimit,
+  apiKeyRateLimit,
+  websocketRateLimit,
+  securityHeaders: helmet,
+  requestSizeLimits,
+  suspiciousActivityDetection,
+  corsOptions,
+  securityMonitoring,
+  checkBruteForce
+} = require('./middleware/enhancedSecurity');
+const oauthGateway = require('./services/oauthGateway');
+const passport = require('passport');
+const {
+  validateLogin,
+  validateAdminLogin,
+  validateBus,
+  validateRoute,
+  validateDriver,
+  validateGPS,
+  validateTrip,
+  validateFeedback,
+  validateNotification,
+  validateObjectId,
+  handleValidationErrors: validationErrorHandler
+} = require('./middleware/validation');
+const {
+  errorHandler,
+  notFoundHandler,
+  asyncHandler,
+  gracefulShutdown,
+  AppError,
+  NotFoundError,
+  AuthenticationError
+} = require('./middleware/errorHandler');
+const { requestLogger, logSecurityEvent, logAuthEvent } = require('./utils/logger');
+const websocketService = require('./services/websocketService');
+const http = require('http');
+
+const app = express();
+const server = http.createServer(app);
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
+
+// Trust proxy for accurate IP addresses
+app.set('trust proxy', 1);
+
+// Security middleware (apply early)
+if (process.env.ENABLE_SECURITY_HEADERS !== 'false') {
+  app.use(helmet);
+}
+app.use(securityHeaders);
+app.use(securityMonitoring);
+app.use(suspiciousActivityDetection);
+app.use(requestSizeLimits.medium);
+
+// Initialize Passport for OAuth
+app.use(passport.initialize());
+
+// CORS
+app.use(cors(corsOptions));
+
+// Compression
+if (process.env.ENABLE_COMPRESSION !== 'false') {
+  app.use(compression());
+}
+
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging
+app.use(requestLogger);
+
+// Rate limiting with dynamic tiers
+if (process.env.ENABLE_RATE_LIMITING !== 'false') {
+  app.use('/api/', dynamicRateLimit);
+}
+
+// Data directory
+const DATA_DIR = path.join(__dirname, 'data');
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Enhanced default data with hashed passwords
+const bcrypt = require('bcryptjs');
+
+// Function to initialize default data with hashed passwords
+async function initializeDefaultData() {
+  const defaultData = {
+    admins: [
+      { 
+        id: 'ADM001', 
+        username: 'admin', 
+        password: await bcrypt.hash('admin123', 10), 
+        name: 'System Administrator',
+        email: 'admin@nxtbus.com',
+        role: 'admin',
+        status: 'active', 
+        createdAt: '2024-01-01',
+        lastLogin: null
+      }
+    ],
+    owners: [
+      { 
+        id: 'OWN001', 
+        name: 'Sharma Transport', 
+        email: 'sharma@transport.com', 
+        phone: '9876500001', 
+        pin: await bcrypt.hash('1234', 10),
+        address: 'Bangalore', 
+        status: 'active', 
+        createdAt: '2024-01-01',
+        lastLogin: null
+      },
+      { 
+        id: 'OWN002', 
+        name: 'Patel Bus Services', 
+        email: 'patel@busservices.com', 
+        phone: '9876500002', 
+        pin: await bcrypt.hash('5678', 10),
+        address: 'Mangalore', 
+        status: 'active', 
+        createdAt: '2024-01-10',
+        lastLogin: null
+      }
+    ],
+    buses: [
+      { id: 'BUS001', number: '101A', type: 'AC', capacity: 40, status: 'active', ownerId: 'OWN001', assignedDrivers: ['DRV001', 'DRV003'], assignedRoutes: [], createdAt: '2024-01-15' },
+      { id: 'BUS002', number: '102B', type: 'Non-AC', capacity: 50, status: 'active', ownerId: 'OWN001', assignedDrivers: ['DRV001'], assignedRoutes: [], createdAt: '2024-01-20' },
+      { id: 'BUS003', number: '103C', type: 'AC', capacity: 40, status: 'maintenance', ownerId: 'OWN002', assignedDrivers: ['DRV002'], assignedRoutes: [], createdAt: '2024-02-01' },
+      { id: 'BUS004', number: '104D', type: 'Electric', capacity: 35, status: 'active', ownerId: 'OWN002', assignedDrivers: ['DRV002'], assignedRoutes: [], createdAt: '2024-02-15' },
+      { id: 'BUS005', number: '105E', type: 'Diesel', capacity: 45, status: 'inactive', ownerId: null, assignedDrivers: [], assignedRoutes: [], createdAt: '2024-03-01' }
+    ],
+    routes: [
+      {
+        id: 'ROUTE001', name: 'Central Station → Airport', startPoint: 'Central Station', endPoint: 'Airport Terminal',
+        startLat: 12.9716, startLon: 77.5946, endLat: 13.1989, endLon: 77.7068, estimatedDuration: 90, status: 'active',
+        stops: [
+          { id: 'S1', name: 'Central Station', lat: 12.9716, lon: 77.5946, order: 1, estimatedTime: 0 },
+          { id: 'S2', name: 'MG Road', lat: 13.0100, lon: 77.6000, order: 2, estimatedTime: 15 },
+          { id: 'S3', name: 'Indiranagar', lat: 13.0200, lon: 77.6400, order: 3, estimatedTime: 30 },
+          { id: 'S4', name: 'Whitefield', lat: 13.0500, lon: 77.7000, order: 4, estimatedTime: 55 },
+          { id: 'S5', name: 'Airport Terminal', lat: 13.1989, lon: 77.7068, order: 5, estimatedTime: 90 }
+        ]
+      }
+    ],
+    drivers: [
+      { id: 'DRV001', name: 'Rajesh Kumar', phone: '9876543210', pin: await bcrypt.hash('1234', 10), status: 'active', assignedBuses: ['BUS001', 'BUS002'], lastLogin: null },
+      { id: 'DRV002', name: 'Suresh Patel', phone: '9876543211', pin: await bcrypt.hash('5678', 10), status: 'active', assignedBuses: ['BUS003', 'BUS004'], lastLogin: null },
+      { id: 'DRV003', name: 'Amit Singh', phone: '9876543212', pin: await bcrypt.hash('9012', 10), status: 'active', assignedBuses: ['BUS001', 'BUS005'], lastLogin: null }
+    ],
+    delays: [],
+    notifications: [],
+    feedbacks: [],
+    activeTrips: [],
+    schedules: [],
+    callAlerts: []
+  };
+  
+  return defaultData;
+}
+
+// Helper functions with error handling
+function getFilePath(collection) {
+  return path.join(DATA_DIR, `${collection}.json`);
+}
+
+function readData(collection) {
+  const filePath = getFilePath(collection);
+  try {
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error(`Error reading ${collection}:`, error);
+    throw new AppError(`Failed to read ${collection} data`, 500, 'DATABASE_ERROR');
+  }
+  // Return default data if file doesn't exist
+  return defaultData[collection] || [];
+}
+
+function writeData(collection, data) {
+  const filePath = getFilePath(collection);
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.error(`Error writing ${collection}:`, error);
+    throw new AppError(`Failed to write ${collection} data`, 500, 'DATABASE_ERROR');
+  }
+}
+
+// Initialize data files if they don't exist
+async function initializeDataFiles() {
+  const defaultData = await initializeDefaultData();
+  
+  for (const [collection, data] of Object.entries(defaultData)) {
+    const filePath = getFilePath(collection);
+    if (!fs.existsSync(filePath)) {
+      writeData(collection, data);
+      console.log(`✅ Created ${collection}.json`);
+    }
+  }
+}
+
+// Initialize the server
+async function startServer() {
+  // Initialize data files
+  await initializeDataFiles();
+
+// ============ OAUTH & API KEY AUTHENTICATION ============
+
+// OAuth provider routes
+const oauthRoutes = oauthGateway.getOAuthRoutes();
+oauthRoutes.forEach(route => {
+  app[route.method.toLowerCase()](route.path, ...Array.isArray(route.handler) ? route.handler : [route.handler]);
+});
+
+// OAuth status endpoint
+app.get('/api/auth/oauth/status', (req, res) => {
+  res.json({
+    success: true,
+    oauth: oauthGateway.getOAuthStatus()
+  });
+});
+
+// API key management endpoints
+app.post('/api/auth/api-keys',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { permissions = ['read'] } = req.body;
+    
+    // Validate permissions
+    const validPermissions = ['read', 'write', 'admin'];
+    const filteredPermissions = permissions.filter(p => validPermissions.includes(p));
+    
+    // Only admins can create admin API keys
+    if (filteredPermissions.includes('admin') && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin role required to create admin API keys',
+        code: 'INSUFFICIENT_PERMISSIONS'
+      });
+    }
+    
+    const apiKeyData = oauthGateway.generateApiKey(req.user.id, filteredPermissions);
+    
+    res.status(201).json({
+      success: true,
+      apiKey: apiKeyData
+    });
+  })
+);
+
+app.get('/api/auth/api-keys',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const apiKeys = oauthGateway.getUserApiKeys(req.user.id);
+    res.json({
+      success: true,
+      apiKeys
+    });
+  })
+);
+
+app.delete('/api/auth/api-keys/:keyId',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { keyId } = req.params;
+    const revoked = oauthGateway.revokeApiKey(keyId, req.user.id);
+    
+    if (revoked) {
+      res.json({
+        success: true,
+        message: 'API key revoked successfully'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'API key not found',
+        code: 'API_KEY_NOT_FOUND'
+      });
+    }
+  })
+);
+
+// API key authentication middleware for public endpoints
+const apiKeyAuth = (req, res, next) => {
+  // Try API key authentication first
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  if (apiKey) {
+    return oauthGateway.authenticateApiKey(req, res, next);
+  }
+  
+  // Fall back to JWT authentication
+  return authenticate(req, res, next);
+};
+
+// ============ ENHANCED AUTHENTICATION ENDPOINTS ============
+
+// Admin login with enhanced security
+app.post('/api/auth/admin/login', 
+  authRateLimit,
+  checkBruteForce('admin_login'),
+  validateAdminLogin,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { username, password } = req.body;
+    const admins = readData('admins');
+    
+    const admin = admins.find(a => a.username === username);
+    
+    if (!admin) {
+      logAuthEvent('ADMIN_LOGIN_FAILED', null, { username, reason: 'user_not_found', ip: req.ip });
+      throw new AuthenticationError('Invalid username or password');
+    }
+    
+    const bcrypt = require('bcryptjs');
+    const isValidPassword = await bcrypt.compare(password, admin.password);
+    
+    if (!isValidPassword) {
+      logAuthEvent('ADMIN_LOGIN_FAILED', admin.id, { username, reason: 'invalid_password', ip: req.ip });
+      throw new AuthenticationError('Invalid username or password');
+    }
+    
+    if (admin.status !== 'active') {
+      logAuthEvent('ADMIN_LOGIN_FAILED', admin.id, { username, reason: 'account_inactive', ip: req.ip });
+      throw new AuthenticationError('Account is not active');
+    }
+    
+    // Update last login
+    admin.lastLogin = new Date().toISOString();
+    const adminIndex = admins.findIndex(a => a.id === admin.id);
+    admins[adminIndex] = admin;
+    writeData('admins', admins);
+    
+    // Generate JWT token
+    const { generateToken, createUserSession } = require('./middleware/auth');
+    const sessionData = createUserSession(admin, 'admin');
+    const token = generateToken(sessionData);
+    
+    logAuthEvent('ADMIN_LOGIN_SUCCESS', admin.id, { username, ip: req.ip });
+    
+    // Return admin without password
+    const { password: _, ...adminData } = admin;
+    res.json({ 
+      success: true, 
+      admin: adminData,
+      token,
+      expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    });
+  })
+);
+
+// Owner login with enhanced security
+app.post('/api/auth/owner/login',
+  authRateLimit,
+  checkBruteForce('owner_login'),
+  validateLogin,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { phone, pin } = req.body;
+    const owners = readData('owners');
+    
+    const owner = owners.find(o => o.phone === phone);
+    
+    if (!owner) {
+      logAuthEvent('OWNER_LOGIN_FAILED', null, { phone, reason: 'user_not_found', ip: req.ip });
+      throw new AuthenticationError('Invalid phone number or PIN');
+    }
+    
+    const bcrypt = require('bcryptjs');
+    const isValidPin = await bcrypt.compare(pin, owner.pin);
+    
+    if (!isValidPin) {
+      logAuthEvent('OWNER_LOGIN_FAILED', owner.id, { phone, reason: 'invalid_pin', ip: req.ip });
+      throw new AuthenticationError('Invalid phone number or PIN');
+    }
+    
+    if (owner.status !== 'active') {
+      logAuthEvent('OWNER_LOGIN_FAILED', owner.id, { phone, reason: 'account_inactive', ip: req.ip });
+      throw new AuthenticationError('Account is not active');
+    }
+    
+    // Update last login
+    owner.lastLogin = new Date().toISOString();
+    const ownerIndex = owners.findIndex(o => o.id === owner.id);
+    owners[ownerIndex] = owner;
+    writeData('owners', owners);
+    
+    // Generate JWT token
+    const { generateToken, createUserSession } = require('./middleware/auth');
+    const sessionData = createUserSession(owner, 'owner');
+    const token = generateToken(sessionData);
+    
+    logAuthEvent('OWNER_LOGIN_SUCCESS', owner.id, { phone, ip: req.ip });
+    
+    // Return owner without PIN
+    const { pin: _, ...ownerData } = owner;
+    res.json({ 
+      success: true, 
+      owner: ownerData,
+      token,
+      expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    });
+  })
+);
+
+// Driver authentication endpoint
+app.post('/api/auth/driver/login',
+  authRateLimit,
+  checkBruteForce('driver_login'),
+  validateLogin,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { phone, pin } = req.body;
+    const drivers = readData('drivers');
+    
+    const driver = drivers.find(d => d.phone === phone);
+    
+    if (!driver) {
+      logAuthEvent('DRIVER_LOGIN_FAILED', null, { phone, reason: 'user_not_found', ip: req.ip });
+      throw new AuthenticationError('Invalid phone number or PIN');
+    }
+    
+    const bcrypt = require('bcryptjs');
+    const isValidPin = await bcrypt.compare(pin, driver.pin);
+    
+    if (!isValidPin) {
+      logAuthEvent('DRIVER_LOGIN_FAILED', driver.id, { phone, reason: 'invalid_pin', ip: req.ip });
+      throw new AuthenticationError('Invalid phone number or PIN');
+    }
+    
+    if (driver.status !== 'active') {
+      logAuthEvent('DRIVER_LOGIN_FAILED', driver.id, { phone, reason: 'account_inactive', ip: req.ip });
+      throw new AuthenticationError('Account is not active');
+    }
+    
+    // Update last login
+    driver.lastLogin = new Date().toISOString();
+    const driverIndex = drivers.findIndex(d => d.id === driver.id);
+    drivers[driverIndex] = driver;
+    writeData('drivers', drivers);
+    
+    // Generate JWT token
+    const { generateToken, createUserSession } = require('./middleware/auth');
+    const sessionData = createUserSession(driver, 'driver');
+    const token = generateToken(sessionData);
+    
+    logAuthEvent('DRIVER_LOGIN_SUCCESS', driver.id, { phone, ip: req.ip });
+    
+    // Return driver without PIN
+    const { pin: _, ...driverData } = driver;
+    res.json({ 
+      success: true, 
+      driver: driverData,
+      token,
+      expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    });
+  })
+);
+
+// Token refresh endpoint
+app.post('/api/auth/refresh',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { generateToken } = require('./middleware/auth');
+    const newToken = generateToken({
+      id: req.user.id,
+      role: req.user.role,
+      name: req.user.name,
+      timestamp: Date.now()
+    });
+    
+    res.json({
+      success: true,
+      token: newToken,
+      expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    });
+  })
+);
+
+// Logout endpoint
+app.post('/api/auth/logout',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    logAuthEvent('USER_LOGOUT', req.user.id, { role: req.user.role, ip: req.ip });
+    res.json({ success: true, message: 'Logged out successfully' });
+  })
+);
+
+// ============ PROTECTED ROUTES WITH ENHANCED RATE LIMITING ============
+
+// Admin-only routes with admin rate limiting
+app.use('/api/admin', authenticate, authorize('admin'), requestSizeLimits.large);
+
+// Owner-only routes with premium rate limiting
+app.use('/api/owner', authenticate, authorize('owner'), requestSizeLimits.medium);
+
+// Driver-only routes with authenticated rate limiting
+app.use('/api/driver', authenticate, authorize('driver'), requestSizeLimits.small);
+
+// API key protected routes
+app.use('/api/v1', oauthGateway.authenticateApiKey, apiKeyRateLimit, requestSizeLimits.medium);
+
+// GPS updates (driver only) with enhanced rate limiting
+app.put('/api/trips/:id/gps',
+  gpsRateLimit,
+  authenticate,
+  authorize('driver'),
+  validateObjectId,
+  validateGPS,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id: tripId } = req.params;
+    const gpsData = req.body;
+    
+    let trips = readData('activeTrips');
+    const index = trips.findIndex(t => t.tripId === tripId || t.id === tripId);
+    
+    if (index === -1) {
+      throw new NotFoundError('Trip');
+    }
+    
+    const trip = trips[index];
+    
+    // Verify driver owns this trip
+    if (trip.driverId !== req.user.driverId) {
+      throw new AuthorizationError('You can only update your own trips');
+    }
+    
+    const previousGps = trip.currentGps;
+    
+    let speed = gpsData.speed || 0;
+    if (!speed && previousGps && gpsData.lat && gpsData.lon) {
+      const timeDiff = (gpsData.timestamp - previousGps.timestamp) / 1000;
+      if (timeDiff > 0) {
+        const distance = calculateDistance(
+          previousGps.lat, previousGps.lon,
+          gpsData.lat, gpsData.lon
+        );
+        speed = (distance / timeDiff) * 3600;
+      }
+    }
+    
+    const speedKmh = speed * 3.6;
+    trip.maxSpeed = Math.max(trip.maxSpeed || 0, speedKmh);
+    
+    const updateCount = (trip.gpsUpdateCount || 0) + 1;
+    trip.avgSpeed = ((trip.avgSpeed || 0) * (updateCount - 1) + speedKmh) / updateCount;
+    trip.gpsUpdateCount = updateCount;
+    
+    if (speedKmh > 60) {
+      trip.overspeedCount = (trip.overspeedCount || 0) + 1;
+      trip.lastOverspeed = Date.now();
+    }
+    
+    trips[index] = {
+      ...trip,
+      previousGps: previousGps,
+      currentGps: { ...gpsData, speed: speed },
+      lastUpdate: Date.now()
+    };
+    
+    writeData('activeTrips', trips);
+    
+    // Broadcast GPS update via WebSocket
+    websocketService.broadcastGPSUpdate({
+      ...gpsData,
+      tripId,
+      driverId: req.user.driverId,
+      busId: trip.busId,
+      ownerId: trip.ownerId
+    });
+    
+    res.json({ success: true, trip: trips[index] });
+  })
+);
+
+// Feedback submission (public with enhanced rate limiting)
+app.post('/api/feedbacks',
+  feedbackRateLimit,
+  requestSizeLimits.small,
+  validateFeedback,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const feedbacks = readData('feedbacks');
+    const newFeedback = {
+      id: `FBK${String(feedbacks.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      status: 'pending',
+      timestamp: new Date().toISOString(),
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    };
+    
+    feedbacks.push(newFeedback);
+    writeData('feedbacks', feedbacks);
+    
+    res.status(201).json({ success: true, feedback: newFeedback });
+  })
+);
+
+// WebSocket connection with rate limiting
+app.get('/api/websocket/connect',
+  websocketRateLimit,
+  authenticate,
+  asyncHandler(async (req, res) => {
+    res.json({
+      success: true,
+      websocket: {
+        url: `ws://${req.get('host')}`,
+        token: req.headers.authorization?.replace('Bearer ', ''),
+        protocols: ['websocket']
+      }
+    });
+  })
+);
+
+// ============ ADMIN ROUTES ============
+
+// Dashboard stats
+app.get('/api/admin/dashboard/stats',
+  asyncHandler(async (req, res) => {
+    const [buses, routes, drivers, trips, delays] = await Promise.all([
+      readData('buses'),
+      readData('routes'),
+      readData('drivers'),
+      readData('activeTrips'),
+      readData('delays')
+    ]);
+    
+    const stats = {
+      totalBuses: buses.length,
+      activeBuses: buses.filter(b => b.status === 'active').length,
+      totalRoutes: routes.length,
+      activeRoutes: routes.filter(r => r.status === 'active').length,
+      totalDrivers: drivers.length,
+      activeDrivers: drivers.filter(d => d.status === 'active').length,
+      activeTrips: trips.length,
+      activeDelays: delays.filter(d => d.status === 'active').length
+    };
+    
+    res.json(stats);
+  })
+);
+
+// Bus management
+app.get('/api/admin/buses',
+  asyncHandler(async (req, res) => {
+    const buses = readData('buses');
+    res.json(buses);
+  })
+);
+
+app.post('/api/admin/buses',
+  validateBus,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const buses = readData('buses');
+    const newBus = {
+      id: `BUS${String(buses.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      createdAt: new Date().toISOString()
+    };
+    
+    buses.push(newBus);
+    writeData('buses', buses);
+    
+    res.status(201).json({ success: true, bus: newBus });
+  })
+);
+
+app.put('/api/admin/buses/:id',
+  validateObjectId,
+  validateBus,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const buses = readData('buses');
+    const index = buses.findIndex(b => b.id === id);
+    
+    if (index === -1) {
+      throw new NotFoundError('Bus');
+    }
+    
+    buses[index] = { ...buses[index], ...req.body, updatedAt: new Date().toISOString() };
+    writeData('buses', buses);
+    
+    res.json({ success: true, bus: buses[index] });
+  })
+);
+
+app.delete('/api/admin/buses/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const buses = readData('buses');
+    const index = buses.findIndex(b => b.id === id);
+    
+    if (index === -1) {
+      throw new NotFoundError('Bus');
+    }
+    
+    buses.splice(index, 1);
+    writeData('buses', buses);
+    
+    res.json({ success: true, message: 'Bus deleted successfully' });
+  })
+);
+
+// Route management
+app.get('/api/admin/routes',
+  asyncHandler(async (req, res) => {
+    const routes = readData('routes');
+    res.json(routes);
+  })
+);
+
+app.post('/api/admin/routes',
+  validateRoute,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const routes = readData('routes');
+    const newRoute = {
+      id: `ROUTE${String(routes.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    
+    routes.push(newRoute);
+    writeData('routes', routes);
+    
+    res.status(201).json({ success: true, route: newRoute });
+  })
+);
+
+// Driver management
+app.get('/api/admin/drivers',
+  asyncHandler(async (req, res) => {
+    const drivers = readData('drivers');
+    // Remove PINs from response
+    const safeDrivers = drivers.map(({ pin, ...driver }) => driver);
+    res.json(safeDrivers);
+  })
+);
+
+app.post('/api/admin/drivers',
+  validateDriver,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const drivers = readData('drivers');
+    const bcrypt = require('bcryptjs');
+    
+    const newDriver = {
+      id: `DRV${String(drivers.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      pin: await bcrypt.hash(req.body.pin, 10),
+      status: 'active',
+      assignedBuses: [],
+      createdAt: new Date().toISOString()
+    };
+    
+    drivers.push(newDriver);
+    writeData('drivers', drivers);
+    
+    // Return without PIN
+    const { pin, ...safeDriver } = newDriver;
+    res.status(201).json({ success: true, driver: safeDriver });
+  })
+);
+
+// Owner management
+app.get('/api/owners',
+  asyncHandler(async (req, res) => {
+    const owners = readData('owners');
+    // Remove PINs from response
+    const safeOwners = owners.map(({ pin, ...owner }) => owner);
+    res.json(safeOwners);
+  })
+);
+
+app.post('/api/admin/owners',
+  validateLogin,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const owners = readData('owners');
+    const bcrypt = require('bcryptjs');
+    
+    const newOwner = {
+      id: `OWN${String(owners.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      pin: await bcrypt.hash(req.body.pin, 10),
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    
+    owners.push(newOwner);
+    writeData('owners', owners);
+    
+    // Return without PIN
+    const { pin, ...safeOwner } = newOwner;
+    res.status(201).json({ success: true, owner: safeOwner });
+  })
+);
+
+// Delay management
+app.get('/api/admin/delays',
+  asyncHandler(async (req, res) => {
+    const delays = readData('delays');
+    res.json(delays);
+  })
+);
+
+app.post('/api/admin/delays',
+  asyncHandler(async (req, res) => {
+    const delays = readData('delays');
+    const newDelay = {
+      id: `DEL${String(delays.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      status: 'active',
+      reportedAt: new Date().toISOString()
+    };
+    
+    delays.push(newDelay);
+    writeData('delays', delays);
+    
+    res.status(201).json({ success: true, delay: newDelay });
+  })
+);
+
+// Notification management
+app.get('/api/admin/notifications',
+  asyncHandler(async (req, res) => {
+    const notifications = readData('notifications');
+    res.json(notifications);
+  })
+);
+
+app.post('/api/admin/notifications',
+  validateNotification,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const notifications = readData('notifications');
+    const newNotification = {
+      id: `NOT${String(notifications.length + 1).padStart(3, '0')}`,
+      ...req.body,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    
+    notifications.push(newNotification);
+    writeData('notifications', notifications);
+    
+    res.status(201).json({ success: true, notification: newNotification });
+  })
+);
+
+// ============ OWNER ROUTES ============
+
+// Fleet overview
+app.get('/api/owner/fleet/overview',
+  asyncHandler(async (req, res) => {
+    const ownerId = req.user.ownerId || req.user.id;
+    const [buses, drivers, routes, trips, delays] = await Promise.all([
+      readData('buses'),
+      readData('drivers'),
+      readData('routes'),
+      readData('activeTrips'),
+      readData('delays')
+    ]);
+    
+    // Filter by owner
+    const ownerBuses = buses.filter(b => b.ownerId === ownerId);
+    const busIds = ownerBuses.map(b => b.id);
+    
+    const ownerDriverIds = new Set();
+    ownerBuses.forEach(bus => {
+      (bus.assignedDrivers || []).forEach(driverId => ownerDriverIds.add(driverId));
+    });
+    const ownerDrivers = drivers.filter(d => ownerDriverIds.has(d.id));
+    
+    const ownerTrips = trips.filter(t => busIds.includes(t.busId));
+    const ownerDelays = delays.filter(d => busIds.includes(d.busId));
+    
+    const stats = {
+      totalBuses: ownerBuses.length,
+      activeBuses: ownerBuses.filter(b => b.status === 'active').length,
+      busesOnTrip: ownerTrips.length,
+      totalDrivers: ownerDrivers.length,
+      activeDrivers: ownerDrivers.filter(d => d.status === 'active').length,
+      activeDelays: ownerDelays.filter(d => d.status === 'active').length,
+      activeTrips: ownerTrips.length
+    };
+    
+    res.json(stats);
+  })
+);
+
+// Fleet tracking
+app.get('/api/owner/fleet/tracking',
+  asyncHandler(async (req, res) => {
+    const ownerId = req.user.ownerId || req.user.id;
+    const [buses, trips, drivers, routes] = await Promise.all([
+      readData('buses'),
+      readData('activeTrips'),
+      readData('drivers'),
+      readData('routes')
+    ]);
+    
+    const ownerBuses = buses.filter(b => b.ownerId === ownerId);
+    const busIds = ownerBuses.map(b => b.id);
+    const ownerTrips = trips.filter(t => busIds.includes(t.busId));
+    
+    const trackingData = ownerTrips.map(trip => {
+      const bus = buses.find(b => b.id === trip.busId);
+      const driver = drivers.find(d => d.id === trip.driverId);
+      const route = routes.find(r => r.id === trip.routeId);
+      
+      let speed = 0;
+      if (trip.currentGps?.speed) {
+        speed = Math.round(trip.currentGps.speed * 3.6);
+      }
+      
+      return {
+        tripId: trip.tripId || trip.id,
+        busId: trip.busId,
+        busNumber: bus?.number || trip.busNumber,
+        driverId: trip.driverId,
+        driverName: driver?.name || 'Unknown',
+        driverPhone: driver?.phone || '',
+        routeId: trip.routeId,
+        routeName: route?.name || 'Unknown Route',
+        currentLat: trip.currentGps?.lat,
+        currentLon: trip.currentGps?.lon,
+        speed: speed,
+        maxSpeed: trip.maxSpeed || 0,
+        avgSpeed: trip.avgSpeed || 0,
+        lastUpdate: trip.lastUpdate || Date.now(),
+        status: 'active'
+      };
+    });
+    
+    res.json(trackingData);
+  })
+);
+
+// Owner delays
+app.get('/api/owner/delays',
+  asyncHandler(async (req, res) => {
+    const ownerId = req.user.ownerId || req.user.id;
+    const [buses, delays] = await Promise.all([
+      readData('buses'),
+      readData('delays')
+    ]);
+    
+    const busIds = buses.filter(b => b.ownerId === ownerId).map(b => b.id);
+    const ownerDelays = delays.filter(d => busIds.includes(d.busId));
+    
+    res.json(ownerDelays);
+  })
+);
+
+// ============ DRIVER ROUTES ============
+
+// Start trip
+app.post('/api/driver/trips/start',
+  validateTrip,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const driverId = req.user.driverId || req.user.id;
+    const trips = readData('activeTrips');
+    
+    const newTrip = {
+      id: `TRIP${String(trips.length + 1).padStart(3, '0')}`,
+      tripId: `T${Date.now()}`,
+      ...req.body,
+      driverId,
+      status: 'active',
+      startTime: new Date().toISOString(),
+      currentGps: null,
+      maxSpeed: 0,
+      avgSpeed: 0,
+      gpsUpdateCount: 0
+    };
+    
+    trips.push(newTrip);
+    writeData('activeTrips', trips);
+    
+    res.status(201).json({ success: true, trip: newTrip });
+  })
+);
+
+// End trip
+app.put('/api/driver/trips/:id/end',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id: tripId } = req.params;
+    const driverId = req.user.driverId || req.user.id;
+    const trips = readData('activeTrips');
+    
+    const index = trips.findIndex(t => (t.tripId === tripId || t.id === tripId) && t.driverId === driverId);
+    
+    if (index === -1) {
+      throw new NotFoundError('Trip');
+    }
+    
+    const trip = trips[index];
+    trip.status = 'completed';
+    trip.endTime = new Date().toISOString();
+    
+    // Move to completed trips (you might want a separate collection)
+    trips.splice(index, 1);
+    writeData('activeTrips', trips);
+    
+    res.json({ success: true, trip });
+  })
+);
+
+// ============ PUBLIC ROUTES ============
+
+// Get routes (public)
+app.get('/api/routes',
+  asyncHandler(async (req, res) => {
+    const routes = readData('routes');
+    res.json(routes.filter(r => r.status === 'active'));
+  })
+);
+
+// Get active trips (public)
+app.get('/api/trips/active',
+  asyncHandler(async (req, res) => {
+    const trips = readData('activeTrips');
+    res.json(trips);
+  })
+);
+
+// Get notifications (public)
+app.get('/api/notifications',
+  asyncHandler(async (req, res) => {
+    const notifications = readData('notifications');
+    res.json(notifications.filter(n => n.status === 'active'));
+  })
+);
+
+// WebSocket status endpoint
+app.get('/api/websocket/status',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const connectedUsers = websocketService.getConnectedUsersCount();
+    const adminUsers = websocketService.getUsersByRole('admin');
+    const ownerUsers = websocketService.getUsersByRole('owner');
+    const driverUsers = websocketService.getUsersByRole('driver');
+    
+    res.json({
+      success: true,
+      websocket: {
+        enabled: true,
+        connectedUsers,
+        usersByRole: {
+          admin: adminUsers.length,
+          owner: ownerUsers.length,
+          driver: driverUsers.length
+        }
+      }
+    });
+  })
+);
+
+// Send notification via WebSocket
+app.post('/api/admin/notifications/broadcast',
+  validateNotification,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { title, message, type, target = 'all' } = req.body;
+    
+    // Save notification to database
+    const notifications = readData('notifications');
+    const newNotification = {
+      id: `NOT${String(notifications.length + 1).padStart(3, '0')}`,
+      title,
+      message,
+      type,
+      target,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      createdBy: req.user.id
+    };
+    
+    notifications.push(newNotification);
+    writeData('notifications', notifications);
+    
+    // Send via WebSocket
+    websocketService.sendNotification({
+      target,
+      type,
+      message: title,
+      data: { message, id: newNotification.id }
+    });
+    
+    res.status(201).json({ success: true, notification: newNotification });
+  })
+);
+
+// Send emergency alert
+app.post('/api/admin/emergency-alert',
+  asyncHandler(async (req, res) => {
+    const { message, type = 'emergency', affectedRoutes = [] } = req.body;
+    
+    const alert = {
+      id: `ALERT_${Date.now()}`,
+      message,
+      type,
+      affectedRoutes,
+      createdBy: req.user.id,
+      createdAt: new Date().toISOString()
+    };
+    
+    // Send emergency alert via WebSocket
+    websocketService.sendEmergencyAlert(alert);
+    
+    res.json({ success: true, alert });
+  })
+);
+
+// ============ API VERSIONING & SECURITY ENDPOINTS ============
+
+// API v1 routes (with API key authentication)
+app.get('/api/v1/routes',
+  oauthGateway.requirePermission('read'),
+  asyncHandler(async (req, res) => {
+    const routes = readData('routes');
+    res.json({
+      success: true,
+      version: 'v1',
+      data: routes.filter(r => r.status === 'active')
+    });
+  })
+);
+
+app.get('/api/v1/trips/active',
+  oauthGateway.requirePermission('read'),
+  asyncHandler(async (req, res) => {
+    const trips = readData('activeTrips');
+    res.json({
+      success: true,
+      version: 'v1',
+      data: trips
+    });
+  })
+);
+
+// Security status endpoint
+app.get('/api/security/status',
+  authenticate,
+  authorize('admin'),
+  asyncHandler(async (req, res) => {
+    const connectedUsers = websocketService.getConnectedUsersCount();
+    
+    res.json({
+      success: true,
+      security: {
+        rateLimiting: {
+          enabled: process.env.ENABLE_RATE_LIMITING !== 'false',
+          tiers: ['public', 'authenticated', 'premium', 'admin'],
+          redis: !!RedisStore
+        },
+        authentication: {
+          jwt: true,
+          oauth: oauthGateway.getOAuthStatus(),
+          apiKeys: true,
+          bruteForceProtection: true
+        },
+        monitoring: {
+          securityEvents: true,
+          requestTracking: true,
+          performanceMonitoring: true
+        },
+        websocket: {
+          enabled: true,
+          connectedUsers,
+          realTimeUpdates: true
+        },
+        headers: {
+          csp: true,
+          hsts: true,
+          xssProtection: true,
+          noSniff: true
+        }
+      }
+    });
+  })
+);
+
+// Rate limit status endpoint
+app.get('/api/security/rate-limits',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const userTier = req.user.role === 'admin' ? 'admin' : 
+                    req.user.role === 'owner' ? 'premium' : 'authenticated';
+    
+    res.json({
+      success: true,
+      rateLimits: {
+        currentTier: userTier,
+        limits: {
+          public: { requests: 100, window: '15 minutes' },
+          authenticated: { requests: 500, window: '15 minutes' },
+          premium: { requests: 1000, window: '15 minutes' },
+          admin: { requests: 2000, window: '15 minutes' }
+        },
+        specialEndpoints: {
+          auth: { requests: 5, window: '15 minutes' },
+          gps: { requests: 120, window: '1 minute' },
+          feedback: { requests: 10, window: '1 hour' },
+          websocket: { requests: 60, window: '1 minute' }
+        }
+      }
+    });
+  })
+);
+
+// Health check endpoint with enhanced information
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    server: 'NxtBus API Server - Production Ready',
+    version: '2.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// 404 handler
+app.use(notFoundHandler);
+
+// Global error handler
+app.use(errorHandler);
+
+// Helper function to calculate distance between two points
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+  // Initialize WebSocket service
+  websocketService.initialize(server);
+
+  // Start server
+  server.listen(PORT, HOST, () => {
+    console.log(`🚀 NxtBus API Server running on http://${HOST}:${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔒 Security features enabled`);
+    console.log(`📁 Data stored in: ${DATA_DIR}`);
+    console.log(`🌐 Network access: http://${process.env.NETWORK_IP || 'localhost'}:${PORT}`);
+  });
+
+  // Setup graceful shutdown with WebSocket cleanup
+  const originalGracefulShutdown = gracefulShutdown;
+  const enhancedGracefulShutdown = (server) => {
+    websocketService.cleanup();
+    originalGracefulShutdown(server);
+  };
+  
+  // Override the graceful shutdown handlers
+  process.removeAllListeners('SIGTERM');
+  process.removeAllListeners('SIGINT');
+  
+  process.on('SIGTERM', () => enhancedGracefulShutdown(server));
+  process.on('SIGINT', () => enhancedGracefulShutdown(server));
+}
+
+// Start the server
+startServer().catch(error => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
+});

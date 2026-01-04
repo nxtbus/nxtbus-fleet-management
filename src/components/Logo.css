@@ -1,0 +1,106 @@
+/* NxtBus Logo Component Styles */
+.nxtbus-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nxtbus-logo .logo-image {
+  border-radius: 8px;
+  object-fit: contain;
+  background: transparent;
+  padding: 0;
+}
+
+.nxtbus-logo h1 {
+  margin: 0;
+  font-weight: bold;
+  color: #1a1a2e;
+}
+
+/* Size variants - Made much bigger */
+.nxtbus-logo.logo-small .logo-image {
+  width: 80px;
+  height: 80px;
+}
+
+.nxtbus-logo.logo-small h1 {
+  font-size: 1.5rem;
+}
+
+.nxtbus-logo.logo-medium .logo-image {
+  width: 110px;
+  height: 110px;
+}
+
+.nxtbus-logo.logo-medium h1 {
+  font-size: 1.8rem;
+}
+
+.nxtbus-logo.logo-large .logo-image {
+  width: 150px;
+  height: 150px;
+}
+
+.nxtbus-logo.logo-large h1 {
+  font-size: 2.5rem;
+}
+
+/* Variant styles */
+.nxtbus-logo.logo-login {
+  flex-direction: column;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.nxtbus-logo.logo-login .logo-image {
+  width: 180px;
+  height: 180px;
+  border-radius: 12px;
+  padding: 0;
+  background: transparent;
+}
+
+.nxtbus-logo.logo-login h1 {
+  font-size: 3.2rem;
+  color: #1a1a2e;
+}
+
+.nxtbus-logo.logo-sidebar h1 {
+  color: white;
+}
+
+.nxtbus-logo.logo-header h1 {
+  color: #1a1a2e;
+}
+
+.nxtbus-logo.logo-header .logo-image {
+  border-radius: 6px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .nxtbus-logo.logo-login .logo-image {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .nxtbus-logo.logo-login h1 {
+    font-size: 2.6rem;
+  }
+  
+  .nxtbus-logo.logo-small .logo-image {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .nxtbus-logo.logo-medium .logo-image {
+    width: 90px;
+    height: 90px;
+  }
+  
+  .nxtbus-logo.logo-large .logo-image {
+    width: 120px;
+    height: 120px;
+  }
+}

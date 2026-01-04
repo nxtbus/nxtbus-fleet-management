@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NxtBus</string>
+    <string name="title_activity_main">NxtBus</string>
+    <string name="package_name">com.nxtbus.app</string>
+    <string name="custom_url_scheme">com.nxtbus.app</string>
+</resources>

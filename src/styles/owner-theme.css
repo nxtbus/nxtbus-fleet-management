@@ -1,0 +1,578 @@
+/* Owner Theme - Yellow/Black Accent with Modern Dashboard */
+:root {
+  /* Core Colors - Owner (matching admin theme) */
+  --bg-main: #0B0B0B;
+  --bg-sidebar: #0B0B0B;
+  --bg-card: #141414;
+  --bg-card-hover: #1C1C1C;
+  --bg-border: #262626;
+  
+  /* Yellow/Black Accent System - Owner - Enhanced Visibility */
+  --yellow-primary: #FFD700;
+  --yellow-secondary: #FFEB3B;
+  --yellow-accent: #FFD700;
+  --yellow-glow: rgba(255, 215, 0, 0.15);
+  --yellow-border: rgba(255, 215, 0, 0.4);
+  
+  /* Text Colors (matching admin theme) */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-muted: #A0A0A0;
+  
+  /* Status Colors */
+  --danger: #EF4444;
+  --success: #10B981;
+  --warning: #F59E0B;
+  
+  /* Interactive States */
+  --hover-scale: 1.02;
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Shadows */
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.25);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --glow-yellow: 0 0 30px rgba(255, 215, 0, 0.5);
+}
+
+/* Global Reset for Owner Dashboard */
+body.owner-theme {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Organic Background Shapes - Owner */
+body.owner-theme::before {
+  content: '';
+  position: fixed;
+  top: -40%;
+  right: -25%;
+  width: 50%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.02), transparent 60%);
+  border-radius: 50%;
+  z-index: -2;
+}
+
+body.owner-theme::after {
+  content: '';
+  position: fixed;
+  bottom: -35%;
+  left: -20%;
+  width: 45%;
+  height: 90%;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.01), transparent 60%);
+  border-radius: 50%;
+  z-index: -2;
+}
+
+/* Owner Sidebar - Yellow Gradient */
+.owner-theme .owner-sidebar {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--bg-border);
+  width: 280px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  transition: var(--transition-smooth);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.owner-theme .sidebar-header {
+  padding: 32px 24px;
+  border-bottom: 1px solid var(--bg-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.owner-theme .sidebar-logo .logo-icon {
+  font-size: 2.5rem;
+  background: var(--yellow-primary);
+  padding: 12px;
+  border-radius: 16px;
+  color: var(--bg-main);
+}
+
+.owner-theme .sidebar-logo h1 {
+  color: var(--text-primary);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.owner-theme .sidebar-logo span {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Owner Navigation - Yellow Active State */
+.owner-theme .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.2s;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+.owner-theme .nav-item:hover {
+  background: var(--yellow-glow);
+  color: var(--text-primary);
+  transform: translateX(4px);
+}
+
+.owner-theme .nav-item.active {
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+  box-shadow: var(--glow-yellow);
+}
+
+.owner-theme .nav-item.active .nav-icon {
+  transform: scale(1.1);
+}
+
+.owner-theme .nav-icon {
+  font-size: 1.2rem;
+  transition: transform 0.2s;
+}
+
+/* Owner Header */
+.owner-theme .owner-header {
+  background: rgba(11, 11, 11, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--bg-border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.owner-theme .owner-header h2 {
+  flex: 1;
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.owner-theme .owner-user {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  background: var(--bg-card);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--bg-border);
+}
+
+/* Owner Cards - Yellow Accent */
+.owner-theme .stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-smooth);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.owner-theme .stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-elevated);
+  background: var(--bg-card-hover);
+}
+
+.owner-theme .stat-card.primary {
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  color: var(--bg-main);
+  border: none;
+  box-shadow: var(--glow-yellow);
+}
+
+.owner-theme .stat-card.primary:hover {
+  transform: translateY(-4px) scale(var(--hover-scale));
+  box-shadow: 0 12px 40px rgba(255, 193, 7, 0.4);
+}
+
+.owner-theme .stat-card.alert {
+  border-left: 4px solid var(--danger);
+}
+
+.owner-theme .stat-card.success {
+  border-left: 4px solid var(--success);
+}
+
+.owner-theme .stat-icon {
+  font-size: 2rem;
+  color: var(--yellow-primary);
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.3));
+}
+
+.owner-theme .stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.owner-theme .stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Alert Summary Cards */
+.owner-theme .alert-summary-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  box-shadow: var(--shadow-card);
+}
+
+.owner-theme .alert-summary-card:hover {
+  border-color: var(--yellow-primary);
+  transform: translateY(-2px);
+}
+
+.owner-theme .alert-summary-card.has-alerts {
+  border-left: 4px solid var(--yellow-primary);
+}
+
+.owner-theme .alert-summary-card.has-alerts .alert-count {
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+}
+
+/* Fleet Tracking */
+.owner-theme .bus-card {
+  border: 2px solid var(--bg-border);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-card);
+}
+
+.owner-theme .bus-card:hover,
+.owner-theme .bus-card.selected {
+  border-color: var(--yellow-primary);
+  background: var(--yellow-glow);
+}
+
+.owner-theme .bus-card.overspeed {
+  border-color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.owner-theme .speed-badge {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+}
+
+.owner-theme .speed-badge.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+}
+
+/* Progress Bars */
+.owner-theme .progress-bar {
+  height: 6px;
+  background: var(--bg-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.owner-theme .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+/* Delay Cards */
+.owner-theme .delay-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px;
+  border-left: 4px solid var(--yellow-primary);
+  box-shadow: var(--shadow-card);
+}
+
+.owner-theme .delay-card.critical {
+  border-left-color: var(--danger);
+}
+
+.owner-theme .delay-time {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+}
+
+.owner-theme .delay-time.critical {
+  background: var(--danger);
+  color: white;
+}
+
+/* Buttons */
+.owner-theme .btn-primary {
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  color: var(--bg-main);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.owner-theme .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-yellow);
+}
+
+.owner-theme .btn-outline {
+  background: transparent;
+  border: 2px solid var(--yellow-primary);
+  color: var(--yellow-primary);
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.owner-theme .btn-outline:hover {
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+}
+
+/* Filter Tabs */
+.owner-theme .filter-tabs button {
+  padding: 8px 16px;
+  border: none;
+  background: var(--bg-card);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.owner-theme .filter-tabs button:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.owner-theme .filter-tabs button.active {
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+}
+
+/* Status Indicators */
+.owner-theme .status-chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.owner-theme .status-on-time {
+  background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+  color: white;
+}
+
+.owner-theme .status-delayed {
+  background: linear-gradient(135deg, var(--danger) 0%, #DC2626 100%);
+  color: white;
+}
+
+.owner-theme .status-waiting {
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  color: var(--bg-main);
+}
+
+/* Map Indicators */
+.owner-theme .map-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+/* Live Indicators */
+.owner-theme .live-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--yellow-primary);
+  animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  50% { 
+    opacity: 0.8; 
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+  }
+}
+
+/* Typography */
+.owner-theme h1, 
+.owner-theme h2, 
+.owner-theme h3, 
+.owner-theme h4, 
+.owner-theme h5, 
+.owner-theme h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0;
+}
+
+.owner-theme .text-primary { color: var(--text-primary); }
+.owner-theme .text-secondary { color: var(--text-secondary); }
+.owner-theme .text-muted { color: var(--text-muted); }
+.owner-theme .text-teal { color: var(--yellow-primary); font-weight: 600; }
+.owner-theme .text-danger { color: var(--danger); }
+.owner-theme .text-success { color: var(--success); }
+
+/* Sections */
+.owner-theme .quick-actions-section,
+.owner-theme .route-status-section,
+.owner-theme .analytics-table-section,
+.owner-theme .speed-monitor-section,
+.owner-theme .reasons-section,
+.owner-theme .schedule-overview {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid var(--bg-border);
+  box-shadow: var(--shadow-card);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .owner-theme .owner-sidebar {
+    width: 60px;
+  }
+
+  .owner-theme .owner-sidebar .nav-label,
+  .owner-theme .owner-sidebar .sidebar-header span,
+  .owner-theme .owner-sidebar .sidebar-footer {
+    display: none;
+  }
+
+  .owner-theme .owner-main {
+    margin-left: 60px;
+  }
+}
+/* Owner Content Area - Matching Admin Theme */
+.owner-theme .owner-content {
+  background: radial-gradient(
+    circle at top,
+    rgba(255,193,7,0.04),
+    transparent 60%
+  );
+}
+
+/* Enhanced Card Styling - Matching Admin */
+.owner-theme .stat-card,
+.owner-theme .alert-summary-card,
+.owner-theme .bus-card,
+.owner-theme .fleet-card,
+.owner-theme .delay-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+  box-shadow: none;
+}
+
+.owner-theme .stat-card:hover,
+.owner-theme .alert-summary-card:hover,
+.owner-theme .bus-card:hover,
+.owner-theme .fleet-card:hover {
+  background: var(--bg-card-hover);
+}
+
+/* Table Styling - Matching Admin */
+.owner-theme .table-container,
+.owner-theme .analytics-table-section {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+}
+
+.owner-theme .analytics-table th {
+  background: #111;
+  color: var(--text-secondary);
+}
+
+.owner-theme .analytics-table td {
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.owner-theme .analytics-table tr:hover {
+  background: linear-gradient(
+    to right,
+    rgba(255,193,7,0.08),
+    transparent
+  );
+}
+
+/* Section Backgrounds - Matching Admin */
+.owner-theme .quick-actions-section,
+.owner-theme .route-status-section,
+.owner-theme .speed-monitor-section,
+.owner-theme .reasons-section,
+.owner-theme .schedule-overview,
+.owner-theme .ultra-reasons-section,
+.owner-theme .ultra-delays-section,
+.owner-theme .ultra-alerts-section,
+.owner-theme .ultra-overspeed-section,
+.owner-theme .ultra-speed-monitor-section,
+.owner-theme .ultra-active-alerts-section,
+.owner-theme .ultra-schedule-overview,
+.owner-theme .ultra-congestion-alerts,
+.owner-theme .ultra-analytics-table-section,
+.owner-theme .ultra-route-summary-section,
+.owner-theme .ultra-optimization-section {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+  box-shadow: none;
+}

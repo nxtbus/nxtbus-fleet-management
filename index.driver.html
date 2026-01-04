@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>NxtBus Driver</title>
+    <link rel="icon" type="image/png" href="/favicon-driver.png" />
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      /* Splash screen styles */
+      #splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+      #splash-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash-screen .logo {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        background: #ffc107;
+        padding: 20px;
+        border-radius: 24px;
+      }
+      #splash-screen h1 {
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 2rem;
+        margin: 0;
+        letter-spacing: 2px;
+      }
+      #splash-screen .subtitle {
+        color: #ffc107;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 1rem;
+        margin-top: 8px;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+      <div class="logo">🚌</div>
+      <h1>NXTBUS</h1>
+      <div class="subtitle">for Drivers</div>
+    </div>
+    
+    <div id="root"></div>
+    <script type="module" src="/src/main.driver.jsx"></script>
+    <script>
+      // Hide splash screen after app loads
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          document.getElementById('splash-screen').classList.add('hidden');
+        }, 1500);
+      });
+    </script>
+  </body>
+</html>

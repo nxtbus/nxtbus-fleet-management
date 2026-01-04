@@ -1,0 +1,486 @@
+/* Admin Theme - Yellow Accent with Dark Modern Dashboard */
+:root {
+  /* Core Colors - Admin */
+  --bg-main: #0B0B0B;
+  --bg-sidebar: #0B0B0B;
+  --bg-card: #141414;
+  --bg-card-hover: #1A1A1A;
+  --bg-border: #262626;
+  
+  /* Yellow Accent System - Admin */
+  --yellow-primary: #FFC107;
+  --yellow-secondary: #FFD54F;
+  --yellow-accent: #FFC107;
+  --yellow-glow: rgba(255, 193, 7, 0.08);
+  --yellow-border: rgba(255, 193, 7, 0.3);
+  
+  /* Text Colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0B0;
+  --text-muted: #8B8E93;
+  
+  /* Status Colors */
+  --danger: #FF3B3B;
+  --success: #2ECC71;
+  --warning: #FFB703;
+  
+  /* Interactive States */
+  --hover-scale: 1.02;
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Shadows */
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.15);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --glow-yellow: 0 0 30px rgba(255, 193, 7, 0.3);
+}
+
+/* Global Reset for Admin Dashboard */
+body.admin-theme {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Organic Background Shapes - Admin */
+body.admin-theme::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -20%;
+  width: 60%;
+  height: 120%;
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  border-radius: 50%;
+  z-index: -2;
+  opacity: 0.05;
+}
+
+body.admin-theme::after {
+  content: '';
+  position: fixed;
+  bottom: -30%;
+  right: -15%;
+  width: 40%;
+  height: 80%;
+  background: linear-gradient(225deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  border-radius: 50%;
+  z-index: -2;
+  opacity: 0.03;
+}
+
+/* Admin Sidebar - Fleet Control Panel Style */
+.admin-theme .admin-sidebar {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--bg-border);
+  width: 280px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  transition: var(--transition-smooth);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(20px);
+}
+
+.admin-theme .sidebar-header {
+  padding: 32px 24px;
+  border-bottom: 1px solid var(--bg-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-theme .sidebar-title h1 {
+  color: var(--text-primary);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-theme .sidebar-title span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 500;
+}
+
+/* Admin Navigation - Yellow Glow Active State */
+.admin-theme .nav-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+  border-radius: 0 25px 25px 0;
+  margin: 4px 0;
+  margin-right: 16px;
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-theme .nav-item:hover {
+  color: var(--text-primary);
+  background: var(--yellow-glow);
+  transform: translateX(8px);
+}
+
+.admin-theme .nav-item.active {
+  color: var(--bg-main);
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  box-shadow: var(--glow-yellow);
+  transform: translateX(8px);
+}
+
+.admin-theme .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--yellow-primary);
+  border-radius: 0 2px 2px 0;
+}
+
+.admin-theme .nav-item .nav-icon {
+  font-size: 1.3rem;
+  margin-right: 16px;
+  min-width: 24px;
+  transition: transform 0.2s;
+}
+
+.admin-theme .nav-item.active .nav-icon {
+  color: var(--bg-main);
+  transform: scale(1.1);
+}
+
+/* Admin Header - Dark with Yellow Logout */
+.admin-theme .admin-header {
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--bg-border);
+  padding: 20px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.admin-theme .admin-header h2 {
+  color: var(--text-primary);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-theme .logout-btn {
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+}
+
+.admin-theme .logout-btn:hover {
+  background: var(--yellow-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(255, 193, 7, 0.4);
+}
+
+/* Admin Cards - Hero Yellow Card Style */
+.admin-theme .stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-smooth);
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.admin-theme .stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-elevated);
+  background: var(--bg-card-hover);
+}
+
+/* Buses On Trip - Hero Card */
+.admin-theme .stat-card.primary {
+  background: linear-gradient(135deg, var(--bg-main) 0%, #1A1A1A 100%);
+  border-left: 4px solid var(--yellow-primary);
+  color: var(--text-primary);
+  box-shadow: var(--glow-yellow);
+}
+
+.admin-theme .stat-card.primary:hover {
+  transform: translateY(-4px) scale(var(--hover-scale));
+  box-shadow: 0 12px 40px rgba(255, 193, 7, 0.4);
+}
+
+.admin-theme .stat-card.primary .stat-icon {
+  color: var(--yellow-primary);
+  font-size: 2.5rem;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.3));
+}
+
+.admin-theme .stat-card.primary .stat-value {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+/* Alert Cards */
+.admin-theme .stat-card.alert {
+  border-left: 4px solid var(--danger);
+}
+
+.admin-theme .stat-card.success {
+  border-left: 4px solid var(--success);
+}
+
+/* Fleet Overview Cards */
+.admin-theme .fleet-stat {
+  text-align: center;
+  padding: 24px;
+  position: relative;
+}
+
+.admin-theme .fleet-stat-value {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.admin-theme .fleet-stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 500;
+}
+
+.admin-theme .fleet-stat-icon {
+  font-size: 2rem;
+  color: var(--yellow-primary);
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.3));
+}
+
+/* Alert Sections */
+.admin-theme .alerts-section {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid var(--bg-border);
+}
+
+.admin-theme .delay-alert {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-left: 4px solid var(--yellow-primary);
+  box-shadow: var(--shadow-card);
+}
+
+.admin-theme .delay-alert.auto-detected {
+  border-left-color: #2196f3;
+}
+
+.admin-theme .alert-row {
+  transition: var(--transition-fast);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.admin-theme .alert-row:hover {
+  background: var(--yellow-glow);
+  transform: translateX(8px);
+}
+
+.admin-theme .alert-active {
+  background: var(--yellow-glow);
+  border-left: 4px solid var(--yellow-primary);
+}
+
+/* Quick Actions - Industrial Control Feel */
+.admin-theme .quick-actions {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid var(--bg-border);
+}
+
+.admin-theme .action-buttons button {
+  padding: 12px;
+  border: 1px dashed var(--yellow-primary);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  color: var(--text-primary);
+}
+
+.admin-theme .action-buttons button:hover {
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+  border-style: solid;
+}
+
+/* Route Status Section */
+.admin-theme .route-status-section {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid var(--bg-border);
+}
+
+/* Progress Bars */
+.admin-theme .progress-bar {
+  height: 8px;
+  background: var(--bg-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.admin-theme .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  transition: width var(--transition-smooth);
+}
+
+/* Status Chips */
+.admin-theme .status-chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-theme .status-on-time {
+  background: linear-gradient(135deg, var(--success) 0%, #27AE60 100%);
+  color: white;
+}
+
+.admin-theme .status-delayed {
+  background: linear-gradient(135deg, var(--danger) 0%, #C0392B 100%);
+  color: white;
+}
+
+.admin-theme .status-waiting {
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  color: var(--bg-main);
+}
+
+/* Buttons */
+.admin-theme .btn-primary {
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  color: var(--bg-main);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.admin-theme .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-yellow);
+}
+
+.admin-theme .btn-outline {
+  background: transparent;
+  border: 2px solid var(--yellow-primary);
+  color: var(--yellow-primary);
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.admin-theme .btn-outline:hover {
+  background: var(--yellow-primary);
+  color: var(--bg-main);
+}
+
+/* Map Indicators */
+.admin-theme .map-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--yellow-primary) 0%, var(--yellow-secondary) 100%);
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+/* Typography */
+.admin-theme h1, 
+.admin-theme h2, 
+.admin-theme h3, 
+.admin-theme h4, 
+.admin-theme h5, 
+.admin-theme h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-theme .text-primary { color: var(--text-primary); }
+.admin-theme .text-secondary { color: var(--text-secondary); }
+.admin-theme .text-muted { color: var(--text-muted); }
+.admin-theme .text-yellow { color: var(--yellow-primary); font-weight: 600; }
+.admin-theme .text-danger { color: var(--danger); }
+.admin-theme .text-success { color: var(--success); }
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 10px var(--yellow-primary); }
+  50% { box-shadow: var(--glow-yellow); }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .admin-theme .admin-sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .admin-theme .admin-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .admin-theme .admin-main {
+    margin-left: 0;
+  }
+}

@@ -1,0 +1,361 @@
+/* Real GPS Tracker Styles */
+
+.real-gps-tracker {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border-radius: 16px;
+  padding: 20px;
+  color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.gps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gps-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #FF6B35, #F7931E);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gps-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid;
+  transition: all 0.3s ease;
+}
+
+.gps-status.idle {
+  background: rgba(107, 114, 128, 0.2);
+  border-color: rgba(107, 114, 128, 0.3);
+  color: #9CA3AF;
+}
+
+.gps-status.requesting {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #FCD34D;
+  animation: pulse 2s infinite;
+}
+
+.gps-status.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10B981;
+}
+
+.gps-status.error {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Error Display */
+.gps-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.error-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.error-content {
+  flex: 1;
+}
+
+.error-title {
+  font-weight: 600;
+  color: #EF4444;
+  margin-bottom: 4px;
+}
+
+.error-message {
+  color: #FCA5A5;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Permissions */
+.gps-permissions {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.permission-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.permission-item:last-child {
+  margin-bottom: 0;
+}
+
+.permission-label {
+  color: #93C5FD;
+  font-size: 0.9rem;
+}
+
+.permission-value {
+  color: white;
+  font-weight: 500;
+}
+
+/* Position Display */
+.gps-position {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.position-header {
+  font-weight: 600;
+  color: #10B981;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.position-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.position-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.position-label {
+  color: #6EE7B7;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.position-value {
+  color: white;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Statistics */
+.gps-stats {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.stats-header {
+  font-weight: 600;
+  color: #8B5CF6;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  color: #C4B5FD;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: white;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Control Buttons */
+.gps-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.gps-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gps-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.permission-btn {
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  color: white;
+}
+
+.permission-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563EB, #1E40AF);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.start-btn {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: white;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.stop-btn {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  color: white;
+}
+
+.stop-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #DC2626, #B91C1C);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.position-btn {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  color: white;
+}
+
+.position-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.retry-btn {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: white;
+}
+
+.retry-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #D97706, #B45309);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+/* WebSocket Status */
+.websocket-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ws-label {
+  color: #9CA3AF;
+  font-size: 0.9rem;
+}
+
+.ws-status {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.ws-status.connected {
+  color: #10B981;
+}
+
+.ws-status.disconnected {
+  color: #EF4444;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .real-gps-tracker {
+    margin: 10px;
+    padding: 16px;
+  }
+  
+  .position-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .gps-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .gps-controls {
+    gap: 8px;
+  }
+  
+  .gps-btn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  .real-gps-tracker {
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+  }
+}
