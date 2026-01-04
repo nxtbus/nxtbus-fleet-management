@@ -771,12 +771,14 @@ app.post('/api/feedbacks',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const newFeedback = {
-      id: `FBK${Date.now()}`,
-      ...req.body,
+      rating: req.body.rating,
+      category: req.body.category,
+      bus_number: req.body.busNumber,
+      comment: req.body.comment,
       status: 'pending',
       submitted_at: new Date().toISOString(),
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      user_agent: req.get('User-Agent')
     };
     
     const feedback = await db.addFeedback(newFeedback);
@@ -806,33 +808,48 @@ app.get('/api/websocket/connect',
 // Dashboard stats
 app.get('/api/admin/dashboard/stats',
   asyncHandler(async (req, res) => {
-    const [buses, routes, drivers, trips, delays] = await Promise.all([
-      readData('buses'),
-      readData('routes'),
-      readData('drivers'),
-      readData('activeTrips'),
-      readData('delays')
-    ]);
-    
-    const stats = {
-      totalBuses: buses.length,
-      activeBuses: buses.filter(b => b.status === 'active').length,
-      totalRoutes: routes.length,
-      activeRoutes: routes.filter(r => r.status === 'active').length,
-      totalDrivers: drivers.length,
-      activeDrivers: drivers.filter(d => d.status === 'active').length,
-      activeTrips: trips.length,
-      activeDelays: delays.filter(d => d.status === 'active').length
-    };
-    
-    res.json(stats);
+    try {
+      const [buses, routes, drivers, trips, delays] = await Promise.all([
+        db.getBuses().catch(() => []),
+        db.getRoutes().catch(() => []),
+        db.getDrivers().catch(() => []),
+        db.getActiveTrips().catch(() => []),
+        db.getDelays().catch(() => [])
+      ]);
+      
+      const stats = {
+        totalBuses: buses.length,
+        activeBuses: buses.filter(b => b.status === 'active').length,
+        totalRoutes: routes.length,
+        activeRoutes: routes.filter(r => r.status === 'active').length,
+        totalDrivers: drivers.length,
+        activeDrivers: drivers.filter(d => d.status === 'active').length,
+        activeTrips: trips.length,
+        activeDelays: delays.filter(d => d.status === 'active').length
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Dashboard stats error:', error);
+      // Return default stats if database fails
+      res.json({
+        totalBuses: 0,
+        activeBuses: 0,
+        totalRoutes: 0,
+        activeRoutes: 0,
+        totalDrivers: 0,
+        activeDrivers: 0,
+        activeTrips: 0,
+        activeDelays: 0
+      });
+    }
   })
 );
 
 // Bus management
 app.get('/api/admin/buses',
   asyncHandler(async (req, res) => {
-    const buses = await readData('buses');
+    const buses = await db.getBuses();
     res.json(buses);
   })
 );
@@ -841,17 +858,18 @@ app.post('/api/admin/buses',
   validateBus,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
-    const buses = readData('buses');
     const newBus = {
-      id: `BUS${String(buses.length + 1).padStart(3, '0')}`,
-      ...req.body,
-      createdAt: new Date().toISOString()
+      number: req.body.number,
+      type: req.body.type,
+      capacity: req.body.capacity,
+      status: req.body.status || 'active',
+      owner_id: req.body.ownerId,
+      assigned_drivers: req.body.assignedDrivers || [],
+      assigned_routes: req.body.assignedRoutes || []
     };
     
-    buses.push(newBus);
-    writeData('buses', buses);
-    
-    res.status(201).json({ success: true, bus: newBus });
+    const createdBus = await db.addBus(newBus);
+    res.status(201).json({ success: true, bus: createdBus });
   })
 );
 
@@ -861,17 +879,24 @@ app.put('/api/admin/buses/:id',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const buses = readData('buses');
-    const index = buses.findIndex(b => b.id === id);
     
-    if (index === -1) {
+    const updateData = {
+      number: req.body.number,
+      type: req.body.type,
+      capacity: req.body.capacity,
+      status: req.body.status,
+      owner_id: req.body.ownerId,
+      assigned_drivers: req.body.assignedDrivers || [],
+      assigned_routes: req.body.assignedRoutes || []
+    };
+    
+    const updatedBus = await db.updateBus(id, updateData);
+    
+    if (!updatedBus) {
       throw new NotFoundError('Bus');
     }
     
-    buses[index] = { ...buses[index], ...req.body, updatedAt: new Date().toISOString() };
-    writeData('buses', buses);
-    
-    res.json({ success: true, bus: buses[index] });
+    res.json({ success: true, bus: updatedBus });
   })
 );
 
@@ -880,15 +905,11 @@ app.delete('/api/admin/buses/:id',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const buses = readData('buses');
-    const index = buses.findIndex(b => b.id === id);
+    const deleted = await db.deleteBus(id);
     
-    if (index === -1) {
+    if (!deleted) {
       throw new NotFoundError('Bus');
     }
-    
-    buses.splice(index, 1);
-    writeData('buses', buses);
     
     res.json({ success: true, message: 'Bus deleted successfully' });
   })
@@ -897,7 +918,7 @@ app.delete('/api/admin/buses/:id',
 // Route management
 app.get('/api/admin/routes',
   asyncHandler(async (req, res) => {
-    const routes = readData('routes');
+    const routes = await db.getRoutes();
     res.json(routes);
   })
 );
@@ -906,25 +927,73 @@ app.post('/api/admin/routes',
   validateRoute,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
-    const routes = readData('routes');
     const newRoute = {
-      id: `ROUTE${String(routes.length + 1).padStart(3, '0')}`,
-      ...req.body,
+      name: req.body.name,
+      start_point: req.body.startPoint,
+      end_point: req.body.endPoint,
+      start_lat: req.body.startLat,
+      start_lon: req.body.startLon,
+      end_lat: req.body.endLat,
+      end_lon: req.body.endLon,
+      estimated_duration: req.body.estimatedDuration,
       status: 'active',
-      createdAt: new Date().toISOString()
+      stops: req.body.stops || []
     };
     
-    routes.push(newRoute);
-    writeData('routes', routes);
+    const createdRoute = await db.addRoute(newRoute);
+    res.status(201).json({ success: true, route: createdRoute });
+  })
+);
+
+app.put('/api/admin/routes/:id',
+  validateObjectId,
+  validateRoute,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
     
-    res.status(201).json({ success: true, route: newRoute });
+    const updateData = {
+      name: req.body.name,
+      start_point: req.body.startPoint,
+      end_point: req.body.endPoint,
+      start_lat: req.body.startLat,
+      start_lon: req.body.startLon,
+      end_lat: req.body.endLat,
+      end_lon: req.body.endLon,
+      estimated_duration: req.body.estimatedDuration,
+      status: req.body.status,
+      stops: req.body.stops || []
+    };
+    
+    const updatedRoute = await db.updateRoute(id, updateData);
+    
+    if (!updatedRoute) {
+      throw new NotFoundError('Route');
+    }
+    
+    res.json({ success: true, route: updatedRoute });
+  })
+);
+
+app.delete('/api/admin/routes/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const deleted = await db.deleteRoute(id);
+    
+    if (!deleted) {
+      throw new NotFoundError('Route');
+    }
+    
+    res.json({ success: true, message: 'Route deleted successfully' });
   })
 );
 
 // Driver management
 app.get('/api/admin/drivers',
   asyncHandler(async (req, res) => {
-    const drivers = await readData('drivers');
+    const drivers = await db.getDrivers();
     // Remove PINs from response
     const safeDrivers = drivers.map(({ pin, password, ...driver }) => driver);
     res.json(safeDrivers);
@@ -935,31 +1004,75 @@ app.post('/api/admin/drivers',
   validateDriver,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
-    const drivers = readData('drivers');
     const bcrypt = require('bcryptjs');
     
     const newDriver = {
-      id: `DRV${String(drivers.length + 1).padStart(3, '0')}`,
-      ...req.body,
-      pin: await bcrypt.hash(req.body.pin, 10),
-      status: 'active',
-      assignedBuses: [],
-      createdAt: new Date().toISOString()
+      name: req.body.name,
+      phone: req.body.phone,
+      password: await bcrypt.hash(req.body.pin, 10),
+      status: req.body.status || 'active',
+      assigned_buses: req.body.assignedBuses || []
     };
     
-    drivers.push(newDriver);
-    writeData('drivers', drivers);
+    const createdDriver = await db.addDriver(newDriver);
     
-    // Return without PIN
-    const { pin, ...safeDriver } = newDriver;
+    // Return without password
+    const { password, ...safeDriver } = createdDriver;
     res.status(201).json({ success: true, driver: safeDriver });
+  })
+);
+
+app.put('/api/admin/drivers/:id',
+  validateObjectId,
+  validateDriver,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const bcrypt = require('bcryptjs');
+    
+    const updateData = {
+      name: req.body.name,
+      phone: req.body.phone,
+      status: req.body.status,
+      assigned_buses: req.body.assignedBuses || []
+    };
+    
+    // Only update password if PIN is provided
+    if (req.body.pin) {
+      updateData.password = await bcrypt.hash(req.body.pin, 10);
+    }
+    
+    const updatedDriver = await db.updateDriver(id, updateData);
+    
+    if (!updatedDriver) {
+      throw new NotFoundError('Driver');
+    }
+    
+    // Return without password
+    const { password, ...safeDriver } = updatedDriver;
+    res.json({ success: true, driver: safeDriver });
+  })
+);
+
+app.delete('/api/admin/drivers/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const deleted = await db.deleteDriver(id);
+    
+    if (!deleted) {
+      throw new NotFoundError('Driver');
+    }
+    
+    res.json({ success: true, message: 'Driver deleted successfully' });
   })
 );
 
 // Owner management
 app.get('/api/owners',
   asyncHandler(async (req, res) => {
-    const owners = await readData('owners');
+    const owners = await db.getOwners();
     // Remove PINs/passwords from response
     const safeOwners = owners.map(({ pin, password, ...owner }) => owner);
     res.json(safeOwners);
@@ -996,32 +1109,31 @@ app.post('/api/admin/owners',
 // Delay management
 app.get('/api/admin/delays',
   asyncHandler(async (req, res) => {
-    const delays = readData('delays');
+    const delays = await db.getDelays();
     res.json(delays);
   })
 );
 
 app.post('/api/admin/delays',
   asyncHandler(async (req, res) => {
-    const delays = readData('delays');
     const newDelay = {
-      id: `DEL${String(delays.length + 1).padStart(3, '0')}`,
-      ...req.body,
+      bus_id: req.body.busId,
+      route_id: req.body.routeId,
+      delay_minutes: req.body.delayMinutes,
+      reason: req.body.reason,
       status: 'active',
-      reportedAt: new Date().toISOString()
+      reported_at: new Date().toISOString()
     };
     
-    delays.push(newDelay);
-    writeData('delays', delays);
-    
-    res.status(201).json({ success: true, delay: newDelay });
+    const createdDelay = await db.addDelay(newDelay);
+    res.status(201).json({ success: true, delay: createdDelay });
   })
 );
 
 // Notification management
 app.get('/api/admin/notifications',
   asyncHandler(async (req, res) => {
-    const notifications = readData('notifications');
+    const notifications = await db.getNotifications();
     res.json(notifications);
   })
 );
@@ -1030,42 +1142,51 @@ app.post('/api/admin/notifications',
   validateNotification,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
-    const notifications = readData('notifications');
     const newNotification = {
-      id: `NOT${String(notifications.length + 1).padStart(3, '0')}`,
-      ...req.body,
+      title: req.body.title,
+      message: req.body.message,
+      type: req.body.type,
+      priority: req.body.priority || 'medium',
       status: 'active',
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
     
-    notifications.push(newNotification);
-    writeData('notifications', notifications);
-    
-    res.status(201).json({ success: true, notification: newNotification });
+    const createdNotification = await db.addNotification(newNotification);
+    res.status(201).json({ success: true, notification: createdNotification });
   })
 );
 
 // Call alerts management
 app.get('/api/callAlerts',
   asyncHandler(async (req, res) => {
-    const callAlerts = readData('callAlerts');
+    const callAlerts = await db.getCallAlerts();
     res.json(callAlerts);
   })
 );
 
 app.post('/api/callAlerts',
   asyncHandler(async (req, res) => {
-    const callAlerts = readData('callAlerts');
     const newAlert = {
-      id: `CALL${String(callAlerts.length + 1).padStart(3, '0')}`,
-      ...req.body,
-      createdAt: new Date().toISOString()
+      trip_id: req.body.tripId,
+      bus_id: req.body.busId,
+      bus_number: req.body.busNumber,
+      driver_id: req.body.driverId,
+      driver_name: req.body.driverName,
+      driver_phone: req.body.driverPhone,
+      route_id: req.body.routeId,
+      route_name: req.body.routeName,
+      owner_id: req.body.ownerId,
+      call_type: req.body.callType,
+      call_status: req.body.callStatus,
+      timestamp: req.body.timestamp || new Date().toISOString(),
+      location: req.body.location,
+      status: 'active',
+      acknowledged: false,
+      created_at: new Date().toISOString()
     };
     
-    callAlerts.push(newAlert);
-    writeData('callAlerts', callAlerts);
-    
-    res.status(201).json({ success: true, alert: newAlert });
+    const createdAlert = await db.addCallAlert(newAlert);
+    res.status(201).json({ success: true, alert: createdAlert });
   })
 );
 
@@ -1074,17 +1195,14 @@ app.put('/api/callAlerts/:id',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const callAlerts = readData('callAlerts');
-    const index = callAlerts.findIndex(a => a.id === id);
     
-    if (index === -1) {
+    const updatedAlert = await db.updateCallAlert(id, req.body);
+    
+    if (!updatedAlert) {
       throw new NotFoundError('Call Alert');
     }
     
-    callAlerts[index] = { ...callAlerts[index], ...req.body, updatedAt: new Date().toISOString() };
-    writeData('callAlerts', callAlerts);
-    
-    res.json({ success: true, alert: callAlerts[index] });
+    res.json({ success: true, alert: updatedAlert });
   })
 );
 
@@ -1093,15 +1211,11 @@ app.delete('/api/callAlerts/:id',
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const callAlerts = readData('callAlerts');
-    const index = callAlerts.findIndex(a => a.id === id);
+    const deleted = await db.deleteCallAlert(id);
     
-    if (index === -1) {
+    if (!deleted) {
       throw new NotFoundError('Call Alert');
     }
-    
-    callAlerts.splice(index, 1);
-    writeData('callAlerts', callAlerts);
     
     res.json({ success: true, message: 'Call alert deleted successfully' });
   })
@@ -1274,7 +1388,7 @@ app.put('/api/driver/trips/:id/end',
 // Get routes (public)
 app.get('/api/routes',
   asyncHandler(async (req, res) => {
-    const routes = await readData('routes');
+    const routes = await db.getRoutes();
     res.json(routes.filter(r => r.status === 'active'));
   })
 );
@@ -1282,7 +1396,7 @@ app.get('/api/routes',
 // Get schedules (public)
 app.get('/api/schedules',
   asyncHandler(async (req, res) => {
-    const schedules = readData('schedules');
+    const schedules = await db.getSchedules();
     res.json(schedules.filter(s => s.status === 'active'));
   })
 );
@@ -1290,7 +1404,7 @@ app.get('/api/schedules',
 // Get drivers (public - without sensitive data)
 app.get('/api/drivers',
   asyncHandler(async (req, res) => {
-    const drivers = await readData('drivers');
+    const drivers = await db.getDrivers();
     // Remove PINs from response for security
     const safeDrivers = drivers.map(({ pin, password, ...driver }) => driver);
     res.json(safeDrivers.filter(d => d.status === 'active'));
@@ -1300,23 +1414,55 @@ app.get('/api/drivers',
 // Get buses (public)
 app.get('/api/buses',
   asyncHandler(async (req, res) => {
-    const buses = await readData('buses');
+    const buses = await db.getBuses();
     res.json(buses.filter(b => b.status === 'active'));
+  })
+);
+
+// Get routes (public)
+app.get('/api/routes',
+  asyncHandler(async (req, res) => {
+    const routes = await db.getRoutes();
+    res.json(routes.filter(r => r.status === 'active'));
   })
 );
 
 // Get active trips (public)
 app.get('/api/trips/active',
   asyncHandler(async (req, res) => {
-    const trips = readData('activeTrips');
+    const trips = await db.getActiveTrips();
     res.json(trips);
+  })
+);
+
+// Alternative endpoint for active trips (for backward compatibility)
+app.get('/api/activeTrips',
+  asyncHandler(async (req, res) => {
+    const trips = await db.getActiveTrips();
+    res.json(trips);
+  })
+);
+
+// Get delays (public)
+app.get('/api/delays',
+  asyncHandler(async (req, res) => {
+    const delays = await db.getDelays();
+    res.json(delays.filter(d => d.status === 'active'));
+  })
+);
+
+// Get feedbacks (public - limited access)
+app.get('/api/feedbacks',
+  asyncHandler(async (req, res) => {
+    // Return empty array for public access - feedbacks should be admin only
+    res.json([]);
   })
 );
 
 // Get notifications (public)
 app.get('/api/notifications',
   asyncHandler(async (req, res) => {
-    const notifications = readData('notifications');
+    const notifications = await db.getNotifications();
     res.json(notifications.filter(n => n.status === 'active'));
   })
 );
@@ -1353,30 +1499,27 @@ app.post('/api/admin/notifications/broadcast',
     const { title, message, type, target = 'all' } = req.body;
     
     // Save notification to database
-    const notifications = readData('notifications');
     const newNotification = {
-      id: `NOT${String(notifications.length + 1).padStart(3, '0')}`,
       title,
       message,
       type,
       target,
       status: 'active',
-      createdAt: new Date().toISOString(),
-      createdBy: req.user.id
+      created_at: new Date().toISOString(),
+      created_by: req.user.id
     };
     
-    notifications.push(newNotification);
-    writeData('notifications', notifications);
+    const createdNotification = await db.addNotification(newNotification);
     
     // Send via WebSocket
     websocketService.sendNotification({
       target,
       type,
       message: title,
-      data: { message, id: newNotification.id }
+      data: { message, id: createdNotification.id }
     });
     
-    res.status(201).json({ success: true, notification: newNotification });
+    res.status(201).json({ success: true, notification: createdNotification });
   })
 );
 
@@ -1497,6 +1640,18 @@ app.get('/api/security/rate-limits',
     });
   })
 );
+
+// Root API endpoint
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: 'NxtBus API Server - Production Ready',
+    version: '2.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    status: 'operational'
+  });
+});
 
 // Health check endpoint with enhanced information
 app.get('/api/health', (req, res) => {
