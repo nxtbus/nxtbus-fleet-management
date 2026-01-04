@@ -37,6 +37,14 @@ if (process.env.ENABLE_RATE_LIMITING === 'true') {
   console.log('⚠️ Rate limiting disabled - using minimal security middleware');
   // Provide minimal implementations when rate limiting is disabled
   const cors = require('cors');
+  const helmetModule = require('helmet');
+  
+  // Configure helmet with basic security headers
+  helmet = helmetModule({
+    contentSecurityPolicy: false, // Disable CSP for development
+    crossOriginEmbedderPolicy: false
+  });
+  
   corsOptions = {
     origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
     credentials: process.env.CORS_CREDENTIALS === 'true'
@@ -50,8 +58,6 @@ if (process.env.ENABLE_RATE_LIMITING === 'true') {
   securityMonitoring = (req, res, next) => next();
   checkBruteForce = () => (req, res, next) => next();
   authRateLimit = (req, res, next) => next();
-  gpsRateLimit = (req, res, next) => next();
-  feedbackRateLimit = (req, res, next) => next();
   gpsRateLimit = (req, res, next) => next();
   feedbackRateLimit = (req, res, next) => next();
   apiKeyRateLimit = (req, res, next) => next();
