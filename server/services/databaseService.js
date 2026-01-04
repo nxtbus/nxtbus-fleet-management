@@ -95,9 +95,27 @@ class DatabaseService {
       console.log('🔍 Testing database connection...');
       const client = await this.pool.connect();
       console.log('✅ Database connected successfully');
+      
+      // Test a simple query to verify tables exist
+      try {
+        const testResult = await client.query('SELECT COUNT(*) FROM routes');
+        console.log(`✅ Routes table accessible - ${testResult.rows[0].count} routes found`);
+      } catch (tableError) {
+        console.warn('⚠️ Routes table query failed:', tableError.message);
+        console.warn('⚠️ This might indicate schema issues - will use fallback mode');
+        this.fallbackMode = true;
+        await this.initializeFallbackData();
+      }
+      
       client.release();
     } catch (error) {
       console.error('❌ Database connection failed:', error.message);
+      console.error('Full error:', error);
+      console.warn('⚠️ Switching to fallback mode');
+      this.fallbackMode = true;
+      await this.initializeFallbackData();
+    }
+  }
       console.error('Full error:', error);
     }
   }
@@ -111,13 +129,27 @@ class DatabaseService {
     try {
       const client = await this.pool.connect();
       try {
+        console.log(`🔍 Executing query: ${text.substring(0, 50)}...`);
         const result = await client.query(text, params);
+        console.log(`✅ Query successful - ${result.rows.length} rows returned`);
         return result;
       } finally {
         client.release();
       }
     } catch (error) {
       console.error('❌ Database query failed:', error.message);
+      console.error('Query:', text);
+      console.error('Params:', params);
+      
+      // Check for specific error types
+      if (error.code === '42P01') {
+        console.error('❌ Table does not exist - switching to fallback mode');
+      } else if (error.code === '42703') {
+        console.error('❌ Column does not exist - switching to fallback mode');
+      } else {
+        console.error('❌ Database error code:', error.code);
+      }
+      
       console.warn('⚠️ Switching to fallback mode due to database error');
       
       // Switch to fallback mode on database errors
