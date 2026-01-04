@@ -12,20 +12,47 @@ const path = require('path');
 
 // Import middleware
 const { authenticate, authorize, handleValidationErrors, securityHeaders } = require('./middleware/auth');
-const { 
-  dynamicRateLimit,
-  authRateLimit, 
-  gpsRateLimit, 
-  feedbackRateLimit,
-  apiKeyRateLimit,
-  websocketRateLimit,
-  securityHeaders: helmet,
-  requestSizeLimits,
-  suspiciousActivityDetection,
-  corsOptions,
-  securityMonitoring,
-  checkBruteForce
-} = require('./middleware/enhancedSecurity');
+
+// Conditionally import rate limiting middleware only if enabled
+let dynamicRateLimit, authRateLimit, gpsRateLimit, feedbackRateLimit, apiKeyRateLimit, websocketRateLimit, helmet, requestSizeLimits, suspiciousActivityDetection, corsOptions, securityMonitoring, checkBruteForce;
+
+if (process.env.ENABLE_RATE_LIMITING !== 'false') {
+  const rateLimitingModule = require('./middleware/enhancedSecurity');
+  ({
+    dynamicRateLimit,
+    authRateLimit, 
+    gpsRateLimit, 
+    feedbackRateLimit,
+    apiKeyRateLimit,
+    websocketRateLimit,
+    securityHeaders: helmet,
+    requestSizeLimits,
+    suspiciousActivityDetection,
+    corsOptions,
+    securityMonitoring,
+    checkBruteForce
+  } = rateLimitingModule);
+} else {
+  // Provide minimal implementations when rate limiting is disabled
+  const cors = require('cors');
+  corsOptions = {
+    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
+    credentials: process.env.CORS_CREDENTIALS === 'true'
+  };
+  requestSizeLimits = {
+    small: (req, res, next) => next(),
+    medium: (req, res, next) => next(),
+    large: (req, res, next) => next()
+  };
+  suspiciousActivityDetection = (req, res, next) => next();
+  securityMonitoring = (req, res, next) => next();
+  checkBruteForce = () => (req, res, next) => next();
+  authRateLimit = (req, res, next) => next();
+  gpsRateLimit = (req, res, next) => next();
+  feedbackRateLimit = (req, res, next) => next();
+  apiKeyRateLimit = (req, res, next) => next();
+  websocketRateLimit = (req, res, next) => next();
+}
 const oauthGateway = require('./services/oauthGateway');
 const passport = require('passport');
 const {
@@ -94,6 +121,8 @@ if (process.env.ENABLE_RATE_LIMITING !== 'false') {
   // Temporarily disabled due to IPv6 configuration issue
   // app.use('/api/', dynamicRateLimit);
   console.log('⚠️ Rate limiting temporarily disabled');
+} else {
+  console.log('⚠️ Rate limiting disabled via environment variable');
 }
 
 // Import database service

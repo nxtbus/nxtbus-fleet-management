@@ -110,7 +110,14 @@ const createAdvancedRateLimit = (config) => {
       maxDelayMs: 20000, // Maximum delay of 20 seconds
       skipSuccessfulRequests,
       store,
-      keyGenerator: (req) => req.user?.id ? `user_${req.user.id}` : req.ip,
+      keyGenerator: (req) => {
+        // Use user ID if authenticated, otherwise use IP with proper IPv6 handling
+        if (req.user?.id) {
+          return `user_${req.user.id}`;
+        }
+        // Use the built-in IP key generator for proper IPv6 support
+        return req.ip || req.connection.remoteAddress || 'unknown';
+      },
       validate: { delayMs: false } // Disable delayMs warning
     });
 
