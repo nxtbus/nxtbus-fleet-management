@@ -1419,14 +1419,6 @@ app.get('/api/buses',
   })
 );
 
-// Get routes (public)
-app.get('/api/routes',
-  asyncHandler(async (req, res) => {
-    const routes = await db.getRoutes();
-    res.json(routes.filter(r => r.status === 'active'));
-  })
-);
-
 // Get active trips (public)
 app.get('/api/trips/active',
   asyncHandler(async (req, res) => {
@@ -1454,8 +1446,8 @@ app.get('/api/delays',
 // Get feedbacks (public - limited access)
 app.get('/api/feedbacks',
   asyncHandler(async (req, res) => {
-    // Return empty array for public access - feedbacks should be admin only
-    res.json([]);
+    const feedbacks = await db.getFeedbacks();
+    res.json(feedbacks.filter(f => f.status === 'active'));
   })
 );
 

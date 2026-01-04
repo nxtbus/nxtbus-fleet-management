@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Direct Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Backend Direct Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Current Status</h3>
+        <p><strong>Issue:</strong> Admin endpoints returning 500 Internal Server Error</p>
+        <p><strong>Root Cause:</strong> Database service methods failing</p>
+        <p><strong>Backend URL:</strong> https://nxtbus-backend.onrender.com/api</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 Test Backend Endpoints</h3>
+        <button onclick="testRootEndpoint()">Test Root API</button>
+        <button onclick="testHealthEndpoint()">Test Health</button>
+        <button onclick="testAdminLogin()">Test Admin Login</button>
+        <button onclick="testAdminBuses()">Test Admin Buses (500 Error)</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        
+        async function testEndpoint(name, endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const resultDiv = document.getElementById('results');
+            
+            try {
+                console.log(`🌐 Testing: ${name} - ${url}`);
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+
+                const data = await response.json();
+                
+                const statusClass = response.ok ? 'success' : 'error';
+                const statusIcon = response.ok ? '✅' : '❌';
+                
+                resultDiv.innerHTML += `
+                    <div class="${statusClass}" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                        <h4>${statusIcon} ${name}</h4>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                        <p><strong>Response:</strong></p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                
+                return { success: response.ok, status: response.status, data };
+            } catch (error) {
+                console.error(`❌ Error testing ${name}:`, error);
+                
+                resultDiv.innerHTML += `
+                    <div class="error" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                        <h4>❌ ${name}</h4>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+                
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testRootEndpoint() {
+            await testEndpoint('Root API', '');
+        }
+
+        async function testHealthEndpoint() {
+            await testEndpoint('Health Check', '/health');
+        }
+
+        async function testAdminLogin() {
+            await testEndpoint('Admin Login', '/auth/admin/login', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: 'admin',
+                    password: 'admin123'
+                })
+            });
+        }
+
+        async function testAdminBuses() {
+            // First login to get token
+            const loginResult = await fetch(`${API_BASE}/auth/admin/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: 'admin',
+                    password: 'admin123'
+                })
+            });
+            
+            if (loginResult.ok) {
+                const loginData = await loginResult.json();
+                const token = loginData.token;
+                
+                await testEndpoint('Admin Buses (with auth)', '/admin/buses', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+            } else {
+                document.getElementById('results').innerHTML += `
+                    <div class="error" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                        <h4>❌ Admin Buses Test</h4>
+                        <p><strong>Error:</strong> Could not login to get auth token</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

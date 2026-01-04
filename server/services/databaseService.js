@@ -116,9 +116,6 @@ class DatabaseService {
       await this.initializeFallbackData();
     }
   }
-      console.error('Full error:', error);
-    }
-  }
 
   async query(text, params) {
     if (this.fallbackMode) {
@@ -318,6 +315,11 @@ class DatabaseService {
       values
     );
     return result.rows[0];
+  }
+
+  async deleteRoute(id) {
+    await this.query('UPDATE routes SET status = $1 WHERE id = $2', ['deleted', id]);
+    return { success: true };
   }
 
   // ============ ACTIVE TRIPS ============
@@ -532,6 +534,22 @@ class DatabaseService {
       [id, driver_id, driver_name, bus_number, alert_type, message, priority, status]
     );
     return result.rows[0];
+  }
+
+  async updateCallAlert(id, updates) {
+    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.query(
+      `UPDATE call_alerts SET ${fields} WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  async deleteCallAlert(id) {
+    await this.query('UPDATE call_alerts SET status = $1 WHERE id = $2', ['deleted', id]);
+    return { success: true };
   }
 
   // ============ OWNERS ============

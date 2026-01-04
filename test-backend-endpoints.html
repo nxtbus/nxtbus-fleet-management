@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Backend Endpoints</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+        .endpoint { margin: 10px 0; padding: 10px; border: 1px solid #eee; border-radius: 3px; }
+        .status-200 { border-left: 4px solid #28a745; }
+        .status-404 { border-left: 4px solid #dc3545; }
+        .status-pending { border-left: 4px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Backend Endpoints Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Test Configuration</h3>
+        <p><strong>Backend URL:</strong> <span id="backendUrl">https://nxtbus-backend.onrender.com/api</span></p>
+        <p><strong>Test Purpose:</strong> Verify all API endpoints are working after fixes</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 Test All Endpoints</h3>
+        <button onclick="testAllEndpoints()">Test All Endpoints</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        
+        const endpoints = [
+            { method: 'GET', path: '', name: 'Root API' },
+            { method: 'GET', path: '/health', name: 'Health Check' },
+            { method: 'GET', path: '/routes', name: 'Routes (Public)' },
+            { method: 'GET', path: '/drivers', name: 'Drivers (Public)' },
+            { method: 'GET', path: '/buses', name: 'Buses (Public)' },
+            { method: 'GET', path: '/trips/active', name: 'Active Trips' },
+            { method: 'GET', path: '/activeTrips', name: 'Active Trips (Alt)' },
+            { method: 'GET', path: '/delays', name: 'Delays (Public)' },
+            { method: 'GET', path: '/feedbacks', name: 'Feedbacks (Public)' },
+            { method: 'GET', path: '/notifications', name: 'Notifications (Public)' },
+            { method: 'GET', path: '/owners', name: 'Owners (Public)' }
+        ];
+
+        async function testEndpoint(endpoint) {
+            const url = `${API_BASE}${endpoint.path}`;
+            
+            try {
+                console.log(`🌐 Testing: ${endpoint.method} ${url}`);
+                const response = await fetch(url, {
+                    method: endpoint.method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                return {
+                    ...endpoint,
+                    status: response.status,
+                    success: response.ok,
+                    data: data,
+                    error: null
+                };
+            } catch (error) {
+                console.error(`❌ Error testing ${endpoint.name}:`, error);
+                return {
+                    ...endpoint,
+                    status: 0,
+                    success: false,
+                    data: null,
+                    error: error.message
+                };
+            }
+        }
+
+        async function testAllEndpoints() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Testing endpoints...</p>';
+            
+            const results = [];
+            
+            for (const endpoint of endpoints) {
+                const result = await testEndpoint(endpoint);
+                results.push(result);
+                
+                // Update UI with each result
+                updateResults(results);
+                
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Final summary
+            const successCount = results.filter(r => r.success).length;
+            const totalCount = results.length;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = successCount === totalCount ? 'success' : 'error';
+            summaryDiv.innerHTML = `
+                <h4>📊 Test Summary</h4>
+                <p><strong>Success Rate:</strong> ${successCount}/${totalCount} (${Math.round(successCount/totalCount*100)}%)</p>
+                <p><strong>Status:</strong> ${successCount === totalCount ? '✅ All endpoints working!' : '⚠️ Some endpoints have issues'}</p>
+            `;
+            
+            resultsDiv.appendChild(summaryDiv);
+        }
+
+        function updateResults(results) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = '<h4>🔍 Endpoint Test Results</h4>';
+            
+            results.forEach(result => {
+                const statusClass = result.success ? 'status-200' : 'status-404';
+                const statusIcon = result.success ? '✅' : '❌';
+                const statusText = result.success ? `${result.status} OK` : `${result.status || 'ERROR'}`;
+                
+                html += `
+                    <div class="endpoint ${statusClass}">
+                        <strong>${statusIcon} ${result.name}</strong>
+                        <br>
+                        <code>${result.method} ${API_BASE}${result.path}</code>
+                        <br>
+                        <strong>Status:</strong> ${statusText}
+                        ${result.error ? `<br><strong>Error:</strong> ${result.error}` : ''}
+                        ${result.success && result.data ? `
+                            <br><strong>Response:</strong>
+                            <pre>${JSON.stringify(result.data, null, 2).substring(0, 200)}${JSON.stringify(result.data, null, 2).length > 200 ? '...' : ''}</pre>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Auto-update backend URL display
+        document.getElementById('backendUrl').textContent = API_BASE;
+    </script>
+</body>
+</html>

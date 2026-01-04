@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deployment Fix Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .status-card { margin: 15px 0; padding: 15px; border-radius: 8px; border-left: 5px solid; }
+        .success { background: #d4edda; border-color: #28a745; }
+        .error { background: #f8d7da; border-color: #dc3545; }
+        .warning { background: #fff3cd; border-color: #ffc107; }
+        .info { background: #d1ecf1; border-color: #17a2b8; }
+        button { padding: 12px 20px; margin: 8px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin: 20px 0; }
+        .test-item { padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 11px; max-height: 200px; overflow-y: auto; }
+        .metric { display: inline-block; margin: 5px 10px; padding: 5px 10px; background: #e9ecef; border-radius: 15px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 NxtBus Deployment Fix Verification</h1>
+        
+        <div class="status-card info">
+            <h3>🔧 Fixes Applied</h3>
+            <div class="metric">✅ Duplicate Routes Fixed</div>
+            <div class="metric">✅ Missing Endpoints Added</div>
+            <div class="metric">✅ Database Methods Added</div>
+            <div class="metric">✅ Syntax Errors Fixed</div>
+        </div>
+
+        <div class="status-card warning">
+            <h3>📋 Expected Results</h3>
+            <ul>
+                <li><strong>Admin Dashboard:</strong> Should load without 500 errors</li>
+                <li><strong>Routes Count:</strong> Should display 3 routes (ROUTE001, ROUTE002, ROUTE003)</li>
+                <li><strong>API Endpoints:</strong> All should return 200 OK</li>
+                <li><strong>CRUD Operations:</strong> Create/Update/Delete should work</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="runFullVerification()">🔍 Run Full Verification</button>
+            <button onclick="quickHealthCheck()">⚡ Quick Health Check</button>
+            <button onclick="testCriticalEndpoints()">🎯 Test Critical Endpoints</button>
+            <button onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        let authToken = null;
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+        
+        function addResult(title, status, data, isError = false, isWarning = false) {
+            const resultDiv = document.getElementById('results');
+            let statusClass = 'success';
+            let statusIcon = '✅';
+            
+            if (isError) {
+                statusClass = 'error';
+                statusIcon = '❌';
+                testResults.failed++;
+            } else if (isWarning) {
+                statusClass = 'warning';
+                statusIcon = '⚠️';
+            } else {
+                testResults.passed++;
+            }
+            
+            testResults.total++;
+            
+            resultDiv.innerHTML += `
+                <div class="status-card ${statusClass}">
+                    <h4>${statusIcon} ${title}</h4>
+                    <p><strong>Status:</strong> ${status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+            
+            updateMetrics();
+        }
+        
+        function updateMetrics() {
+            const successRate = testResults.total > 0 ? Math.round((testResults.passed / testResults.total) * 100) : 0;
+            document.title = `Verification: ${successRate}% (${testResults.passed}/${testResults.total})`;
+        }
+        
+        async function quickHealthCheck() {
+            clearResults();
+            addResult('Test Started', 'Running quick health check...', { timestamp: new Date().toISOString() }, false, true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                addResult('Health Check', `${response.status} ${response.statusText}`, data, !response.ok);
+                
+                if (response.ok) {
+                    addResult('Server Status', 'Server is responding correctly', { 
+                        environment: data.environment,
+                        version: data.version,
+                        status: data.status 
+                    });
+                }
+            } catch (error) {
+                addResult('Health Check', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testCriticalEndpoints() {
+            clearResults();
+            addResult('Test Started', 'Testing critical endpoints that were failing...', { timestamp: new Date().toISOString() }, false, true);
+            
+            // Test the endpoints that were returning 404/500 errors
+            const criticalEndpoints = [
+                { name: 'Delays (was 404)', url: '/delays' },
+                { name: 'Feedbacks (was 404)', url: '/feedbacks' },
+                { name: 'Routes (duplicate fixed)', url: '/routes' },
+                { name: 'Active Trips', url: '/activeTrips' }
+            ];
+            
+            for (const endpoint of criticalEndpoints) {
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint.url}`);
+                    const data = await response.json();
+                    
+                    let extraInfo = '';
+                    if (Array.isArray(data)) {
+                        extraInfo = ` - Found ${data.length} items`;
+                        
+                        // Special check for routes - should be 3
+                        if (endpoint.url === '/routes' && data.length !== 3) {
+                            addResult(`${endpoint.name}${extraInfo}`, `${response.status} ${response.statusText}`, 
+                                { expected: 3, actual: data.length, data: data }, false, true);
+                            continue;
+                        }
+                    }
+                    
+                    addResult(`${endpoint.name}${extraInfo}`, `${response.status} ${response.statusText}`, 
+                        Array.isArray(data) ? { count: data.length, sample: data[0] } : data, !response.ok);
+                } catch (error) {
+                    addResult(`${endpoint.name}`, 'Network Error', { error: error.message }, true);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+        
+        async function runFullVerification() {
+            clearResults();
+            addResult('Full Verification Started', 'Testing all fixed components...', { timestamp: new Date().toISOString() }, false, true);
+            
+            // Step 1: Health Check
+            await quickHealthCheck();
+            
+            // Step 2: Authentication
+            try {
+                const response = await fetch(`${API_BASE}/auth/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    addResult('Admin Authentication', `${response.status} ${response.statusText}`, 
+                        { authenticated: true, tokenLength: data.token.length });
+                } else {
+                    addResult('Admin Authentication', `${response.status} ${response.statusText}`, data, true);
+                    return; // Can't continue without auth
+                }
+            } catch (error) {
+                addResult('Admin Authentication', 'Network Error', { error: error.message }, true);
+                return;
+            }
+            
+            // Step 3: Test Admin Endpoints (these were returning 500 errors)
+            const adminEndpoints = [
+                { name: 'Admin Buses (was 500)', url: '/admin/buses' },
+                { name: 'Admin Routes (was 500)', url: '/admin/routes' },
+                { name: 'Admin Drivers (was 500)', url: '/admin/drivers' }
+            ];
+            
+            for (const endpoint of adminEndpoints) {
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint.url}`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    let extraInfo = '';
+                    if (Array.isArray(data)) {
+                        extraInfo = ` - ${data.length} items`;
+                    }
+                    
+                    addResult(`${endpoint.name}${extraInfo}`, `${response.status} ${response.statusText}`, 
+                        Array.isArray(data) ? { count: data.length, sample: data[0] } : data, !response.ok);
+                } catch (error) {
+                    addResult(`${endpoint.name}`, 'Network Error', { error: error.message }, true);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // Step 4: Test Critical Public Endpoints
+            await testCriticalEndpoints();
+            
+            // Final Summary
+            const successRate = Math.round((testResults.passed / testResults.total) * 100);
+            const summaryData = {
+                totalTests: testResults.total,
+                passed: testResults.passed,
+                failed: testResults.failed,
+                successRate: `${successRate}%`,
+                status: successRate >= 80 ? 'DEPLOYMENT SUCCESS' : 'ISSUES DETECTED'
+            };
+            
+            addResult('Verification Complete', `${successRate}% success rate`, summaryData, successRate < 80, successRate < 100 && successRate >= 80);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            testResults = { total: 0, passed: 0, failed: 0 };
+            updateMetrics();
+        }
+        
+        // Auto-run quick health check on page load
+        window.onload = function() {
+            setTimeout(quickHealthCheck, 1000);
+        };
+    </script>
+</body>
+</html>

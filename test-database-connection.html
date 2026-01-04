@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Database Connection Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Current Issue</h3>
+        <p><strong>Problem:</strong> Backend returning 500 errors for admin endpoints</p>
+        <p><strong>Environment:</strong> DATABASE_URL is set in Render</p>
+        <p><strong>Expected:</strong> Should connect to Neon database and return data</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 Test Database Connection</h3>
+        <button onclick="testRootAPI()">1. Test Root API</button>
+        <button onclick="testHealthCheck()">2. Test Health Check</button>
+        <button onclick="testLogin()">3. Test Admin Login</button>
+        <button onclick="testBusesWithAuth()">4. Test Buses (500 Error)</button>
+        <button onclick="testRoutesWithAuth()">5. Test Routes (Should show 3)</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        let authToken = null;
+        
+        function addResult(title, status, data, isError = false) {
+            const resultDiv = document.getElementById('results');
+            const statusClass = isError ? 'error' : 'success';
+            const statusIcon = isError ? '❌' : '✅';
+            
+            resultDiv.innerHTML += `
+                <div class="${statusClass}" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                    <h4>${statusIcon} ${title}</h4>
+                    <p><strong>Status:</strong> ${status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        async function testRootAPI() {
+            try {
+                const response = await fetch(`${API_BASE}`);
+                const data = await response.json();
+                addResult('Root API Test', `${response.status} ${response.statusText}`, data, !response.ok);
+            } catch (error) {
+                addResult('Root API Test', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testHealthCheck() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                addResult('Health Check', `${response.status} ${response.statusText}`, data, !response.ok);
+            } catch (error) {
+                addResult('Health Check', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    addResult('Admin Login', `${response.status} ${response.statusText}`, 
+                        { ...data, token: data.token.substring(0, 20) + '...' }, false);
+                } else {
+                    addResult('Admin Login', `${response.status} ${response.statusText}`, data, true);
+                }
+            } catch (error) {
+                addResult('Admin Login', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testBusesWithAuth() {
+            if (!authToken) {
+                addResult('Buses Test', 'No Auth Token', { error: 'Please login first' }, true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/buses`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                addResult('Admin Buses (500 Error Expected)', `${response.status} ${response.statusText}`, data, !response.ok);
+            } catch (error) {
+                addResult('Admin Buses', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        async function testRoutesWithAuth() {
+            if (!authToken) {
+                addResult('Routes Test', 'No Auth Token', { error: 'Please login first' }, true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/routes`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                let extraInfo = '';
+                if (Array.isArray(data)) {
+                    extraInfo = ` (Found ${data.length} routes)`;
+                }
+                
+                addResult(`Admin Routes${extraInfo}`, `${response.status} ${response.statusText}`, data, !response.ok);
+            } catch (error) {
+                addResult('Admin Routes', 'Network Error', { error: error.message }, true);
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

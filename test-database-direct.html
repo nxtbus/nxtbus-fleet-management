@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Direct Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Database Direct Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Issue Analysis</h3>
+        <p><strong>Problem:</strong> Database has 3 routes but frontend shows only 1</p>
+        <p><strong>Expected:</strong> Database should return all 3 routes (ROUTE001, ROUTE002, ROUTE003)</p>
+        <p><strong>Backend URL:</strong> https://nxtbus-backend.onrender.com/api</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🚀 Test Database Endpoints</h3>
+        <button onclick="testAdminLogin()">1. Login as Admin</button>
+        <button onclick="testRoutes()">2. Test Routes (Should show 3)</button>
+        <button onclick="testBuses()">3. Test Buses</button>
+        <button onclick="testDrivers()">4. Test Drivers</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+        let authToken = null;
+        
+        async function testEndpoint(name, endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const resultDiv = document.getElementById('results');
+            
+            try {
+                console.log(`🌐 Testing: ${name} - ${url}`);
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+                        ...options.headers
+                    },
+                    ...options
+                });
+
+                const data = await response.json();
+                
+                const statusClass = response.ok ? 'success' : 'error';
+                const statusIcon = response.ok ? '✅' : '❌';
+                
+                // Special handling for routes to show count
+                let extraInfo = '';
+                if (name.includes('Routes') && Array.isArray(data)) {
+                    extraInfo = `<p><strong>Routes Found:</strong> ${data.length}</p>`;
+                    if (data.length > 0) {
+                        extraInfo += `<p><strong>Route IDs:</strong> ${data.map(r => r.id || 'NO_ID').join(', ')}</p>`;
+                    }
+                }
+                
+                resultDiv.innerHTML += `
+                    <div class="${statusClass}" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                        <h4>${statusIcon} ${name}</h4>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                        ${extraInfo}
+                        <p><strong>Response:</strong></p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                
+                return { success: response.ok, status: response.status, data };
+            } catch (error) {
+                console.error(`❌ Error testing ${name}:`, error);
+                
+                resultDiv.innerHTML += `
+                    <div class="error" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                        <h4>❌ ${name}</h4>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+                
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testAdminLogin() {
+            const result = await testEndpoint('Admin Login', '/auth/admin/login', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: 'admin',
+                    password: 'admin123'
+                })
+            });
+            
+            if (result.success && result.data.token) {
+                authToken = result.data.token;
+                console.log('✅ Auth token obtained:', authToken.substring(0, 20) + '...');
+            }
+        }
+
+        async function testRoutes() {
+            if (!authToken) {
+                alert('Please login first!');
+                return;
+            }
+            
+            await testEndpoint('Admin Routes (Should show 3)', '/admin/routes');
+        }
+
+        async function testBuses() {
+            if (!authToken) {
+                alert('Please login first!');
+                return;
+            }
+            
+            await testEndpoint('Admin Buses', '/admin/buses');
+        }
+
+        async function testDrivers() {
+            if (!authToken) {
+                alert('Please login first!');
+                return;
+            }
+            
+            await testEndpoint('Admin Drivers', '/admin/drivers');
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
