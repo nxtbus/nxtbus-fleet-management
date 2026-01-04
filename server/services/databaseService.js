@@ -140,6 +140,8 @@ class DatabaseService {
     try {
       const result = await this.query('SELECT * FROM buses ORDER BY created_at DESC');
       
+      console.log(`🔍 Database query result: ${result.rows.length} buses found`);
+      
       // If query succeeded but returned empty, check if we should use fallback
       if (result.rows.length === 0) {
         console.warn('⚠️ No buses found in database, using fallback data');
@@ -147,7 +149,22 @@ class DatabaseService {
         return fallbackData.buses;
       }
       
-      return result.rows;
+      // Map database fields (snake_case) to frontend fields (camelCase)
+      const mappedBuses = result.rows.map(bus => ({
+        id: bus.id,
+        number: bus.number,
+        type: bus.type,
+        capacity: bus.capacity,
+        status: bus.status || 'active',
+        ownerId: bus.owner_id,
+        assignedDrivers: bus.assigned_drivers || [],
+        assignedRoutes: bus.assigned_routes || [],
+        createdAt: bus.created_at,
+        updatedAt: bus.updated_at
+      }));
+      
+      console.log(`✅ Returning ${mappedBuses.length} mapped buses`);
+      return mappedBuses;
     } catch (error) {
       console.error('❌ getBuses failed, using fallback data:', error.message);
       await this.initializeFallbackData();
@@ -199,6 +216,8 @@ class DatabaseService {
     try {
       const result = await this.query('SELECT * FROM routes ORDER BY created_at DESC');
       
+      console.log(`🔍 Database query result: ${result.rows.length} routes found`);
+      
       // If query succeeded but returned empty, check if we should use fallback
       if (result.rows.length === 0) {
         console.warn('⚠️ No routes found in database, using fallback data');
@@ -206,7 +225,25 @@ class DatabaseService {
         return fallbackData.routes;
       }
       
-      return result.rows;
+      // Map database fields (snake_case) to frontend fields (camelCase)
+      const mappedRoutes = result.rows.map(route => ({
+        id: route.id,
+        name: route.name,
+        startPoint: route.start_point,
+        endPoint: route.end_point,
+        startLat: route.start_lat,
+        startLon: route.start_lon,
+        endLat: route.end_lat,
+        endLon: route.end_lon,
+        estimatedDuration: route.estimated_duration,
+        status: route.status || 'active',
+        stops: route.stops || [],
+        createdAt: route.created_at,
+        updatedAt: route.updated_at
+      }));
+      
+      console.log(`✅ Returning ${mappedRoutes.length} mapped routes`);
+      return mappedRoutes;
     } catch (error) {
       console.error('❌ getRoutes failed, using fallback data:', error.message);
       await this.initializeFallbackData();
@@ -521,6 +558,8 @@ class DatabaseService {
     try {
       const result = await this.query('SELECT * FROM drivers ORDER BY created_at DESC');
       
+      console.log(`🔍 Database query result: ${result.rows.length} drivers found`);
+      
       // If query succeeded but returned empty, check if we should use fallback
       if (result.rows.length === 0) {
         console.warn('⚠️ No drivers found in database, using fallback data');
@@ -528,7 +567,23 @@ class DatabaseService {
         return fallbackData.drivers;
       }
       
-      return result.rows;
+      // Map database fields (snake_case) to frontend fields (camelCase)
+      const mappedDrivers = result.rows.map(driver => ({
+        id: driver.id,
+        name: driver.name,
+        phone: driver.phone,
+        password: driver.password,
+        licenseNumber: driver.license_number,
+        experienceYears: driver.experience_years,
+        status: driver.status || 'active',
+        assignedBuses: driver.assigned_buses || [],
+        createdAt: driver.created_at,
+        updatedAt: driver.updated_at,
+        lastLogin: driver.last_login
+      }));
+      
+      console.log(`✅ Returning ${mappedDrivers.length} mapped drivers`);
+      return mappedDrivers;
     } catch (error) {
       console.error('❌ getDrivers failed, using fallback data:', error.message);
       await this.initializeFallbackData();
