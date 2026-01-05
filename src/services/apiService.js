@@ -394,19 +394,27 @@ export async function getActiveDelays() {
 }
 
 export async function addDelay(delayData) {
-  return create('delays', {
-    ...delayData,
-    status: 'active',
-    reportedAt: new Date().toISOString()
+  return fetchApi('/admin/delays', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...delayData,
+      status: 'active',
+      reportedAt: new Date().toISOString()
+    })
   });
 }
 
 export async function updateDelayStatus(id, status) {
-  return update('delays', id, { status });
+  return fetchApi(`/admin/delays/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status })
+  });
 }
 
 export async function deleteDelay(id) {
-  return remove('delays', id);
+  return fetchApi(`/admin/delays/${id}`, {
+    method: 'DELETE'
+  });
 }
 
 // ============ NOTIFICATIONS ============
@@ -417,15 +425,20 @@ export async function getNotifications() {
 }
 
 export async function addNotification(notifData) {
-  return create('notifications', {
-    ...notifData,
-    sentAt: new Date().toISOString(),
-    sentBy: 'Admin'
+  return fetchApi('/admin/notifications', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...notifData,
+      sentAt: new Date().toISOString(),
+      sentBy: 'Admin'
+    })
   });
 }
 
 export async function deleteNotification(id) {
-  return remove('notifications', id);
+  return fetchApi(`/admin/notifications/${id}`, {
+    method: 'DELETE'
+  });
 }
 
 // ============ FEEDBACKS ============
