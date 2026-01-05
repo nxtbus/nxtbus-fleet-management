@@ -171,13 +171,6 @@ class DatabaseService {
       
       console.log(`🔍 Database query result: ${result.rows.length} buses found`);
       
-      // If query succeeded but returned empty, check if we should use fallback
-      if (result.rows.length === 0) {
-        console.warn('⚠️ No buses found in database, using fallback data');
-        await this.initializeFallbackData();
-        return fallbackData.buses;
-      }
-      
       // Map database fields (snake_case) to frontend fields (camelCase)
       const mappedBuses = result.rows.map(bus => ({
         id: bus.id,
@@ -192,7 +185,7 @@ class DatabaseService {
         updatedAt: bus.updated_at
       }));
       
-      console.log(`✅ Returning ${mappedBuses.length} mapped buses`);
+      console.log(`✅ Returning ${mappedBuses.length} mapped buses from database`);
       return mappedBuses;
     } catch (error) {
       console.error('❌ getBuses failed, using fallback data:', error.message);
@@ -332,13 +325,6 @@ class DatabaseService {
       
       console.log(`🔍 Database query result: ${result.rows.length} routes found`);
       
-      // If query succeeded but returned empty, check if we should use fallback
-      if (result.rows.length === 0) {
-        console.warn('⚠️ No routes found in database, using fallback data');
-        await this.initializeFallbackData();
-        return fallbackData.routes;
-      }
-      
       // Map database fields (snake_case) to frontend fields (camelCase)
       const mappedRoutes = result.rows.map(route => ({
         id: route.id,
@@ -356,7 +342,7 @@ class DatabaseService {
         updatedAt: route.updated_at
       }));
       
-      console.log(`✅ Returning ${mappedRoutes.length} mapped routes`);
+      console.log(`✅ Returning ${mappedRoutes.length} mapped routes from database`);
       return mappedRoutes;
     } catch (error) {
       console.error('❌ getRoutes failed, using fallback data:', error.message);
@@ -856,13 +842,8 @@ class DatabaseService {
     try {
       const result = await this.query('SELECT * FROM delays ORDER BY reported_at DESC');
       
-      // If query succeeded but returned empty, use fallback
-      if (result.rows.length === 0) {
-        console.warn('⚠️ No delays found in database, using fallback data');
-        await this.initializeFallbackData();
-        return fallbackData.delays;
-      }
-      
+      console.log(`🔍 Database query result: ${result.rows.length} delays found`);
+      console.log(`✅ Returning ${result.rows.length} delays from database`);
       return result.rows;
     } catch (error) {
       console.error('❌ getDelays failed, using fallback data:', error.message);
@@ -1216,13 +1197,6 @@ class DatabaseService {
       
       console.log(`🔍 Database query result: ${result.rows.length} drivers found`);
       
-      // If query succeeded but returned empty, check if we should use fallback
-      if (result.rows.length === 0) {
-        console.warn('⚠️ No drivers found in database, using fallback data');
-        await this.initializeFallbackData();
-        return fallbackData.drivers;
-      }
-      
       // Map database fields (snake_case) to frontend fields (camelCase)
       const mappedDrivers = result.rows.map(driver => ({
         id: driver.id,
@@ -1238,7 +1212,7 @@ class DatabaseService {
         lastLogin: driver.last_login
       }));
       
-      console.log(`✅ Returning ${mappedDrivers.length} mapped drivers`);
+      console.log(`✅ Returning ${mappedDrivers.length} mapped drivers from database`);
       return mappedDrivers;
     } catch (error) {
       console.error('❌ getDrivers failed, using fallback data:', error.message);
