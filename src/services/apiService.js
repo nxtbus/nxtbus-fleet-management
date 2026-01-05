@@ -275,9 +275,12 @@ export async function deleteDriver(id) {
 // ============ SCHEDULES ============
 
 export async function getSchedules() {
-  // No public schedules endpoint, return empty array
-  console.warn('Schedules endpoint not available, returning empty data');
-  return [];
+  try {
+    return await read('schedules');
+  } catch (error) {
+    console.warn('Failed to fetch schedules:', error);
+    return [];
+  }
 }
 
 export async function addSchedule(scheduleData) {
