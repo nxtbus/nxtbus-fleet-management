@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NxtBus CRUD Operations Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+    .config {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+    .config input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .module-card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+    }
+    .module-card:hover {
+      border-color: #667eea;
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    }
+    .module-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    .module-title {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #333;
+    }
+    .module-status {
+      font-size: 0.9em;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+    }
+    .status-pending { background: #ffeaa7; color: #d63031; }
+    .status-testing { background: #74b9ff; color: #0984e3; }
+    .status-success { background: #55efc4; color: #00b894; }
+    .status-failed { background: #ff7675; color: #d63031; }
+    .crud-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .crud-btn {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+    .crud-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+    .btn-create { background: #00b894; color: white; }
+    .btn-read { background: #0984e3; color: white; }
+    .btn-update { background: #fdcb6e; color: #2d3436; }
+    .btn-delete { background: #d63031; color: white; }
+    .test-all-btn {
+      width: 100%;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.3em;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 30px;
+      transition: all 0.3s;
+    }
+    .test-all-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    .results {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .result-item {
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    .result-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .result-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+    .result-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .summary-card {
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+    }
+    .summary-card .number { font-size: 2.5em; margin-bottom: 5px; }
+    .summary-card .label { font-size: 0.9em; opacity: 0.9; }
+    .summary-total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .summary-success { background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); }
+    .summary-failed { background: linear-gradient(135deg, #d63031 0%, #ff7675 100%); }
+    .summary-pending { background: linear-gradient(135deg, #fdcb6e 0%, #ffeaa7 100%); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 NxtBus CRUD Operations Test Suite</h1>
+    <p class="subtitle">Comprehensive real-time testing for all admin modules</p>
+    
+    <div class="config">
+      <h3 style="margin-bottom: 15px;">⚙️ Configuration</h3>
+      <input type="text" id="apiBase" value="https://nxtbus-backend.onrender.com/api" placeholder="API Base URL">
+      <input type="text" id="adminToken" placeholder="Admin Token (login first to get token)">
+      <button onclick="loginAdmin()" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;">
+        🔐 Login as Admin (admin/admin123)
+      </button>
+    </div>
+
+    <button class="test-all-btn" onclick="testAllModules()">
+      🚀 Test All CRUD Operations
+    </button>
+
+    <div class="summary" id="summary">
+      <div class="summary-card summary-total">
+        <div class="number" id="totalTests">0</div>
+        <div class="label">Total Tests</div>
+      </div>
+      <div class="summary-card summary-success">
+        <div class="number" id="passedTests">0</div>
+        <div class="label">Passed</div>
+      </div>
+      <div class="summary-card summary-failed">
+        <div class="number" id="failedTests">0</div>
+        <div class="label">Failed</div>
+      </div>
+      <div class="summary-card summary-pending">
+        <div class="number" id="pendingTests">32</div>
+        <div class="label">Pending</div>
+      </div>
+    </div>
+
+    <div class="test-grid" id="moduleGrid"></div>
+
+    <div class="results">
+      <h3 style="margin-bottom: 15px;">📋 Test Results</h3>
+      <div id="results"></div>
+    </div>
+  </div>
+  <script>
+    const modules = [
+      { name: 'Owners', icon: '👤', endpoint: 'admin/owners', hasAuth: true },
+      { name: 'Buses', icon: '🚌', endpoint: 'admin/buses', hasAuth: true },
+      { name: 'Routes', icon: '🛣️', endpoint: 'admin/routes', hasAuth: true },
+      { name: 'Drivers', icon: '🧑‍✈️', endpoint: 'admin/drivers', hasAuth: true },
+      { name: 'Schedules', icon: '🔗', endpoint: 'schedules', hasAuth: false },
+      { name: 'Delays', icon: '⚠️', endpoint: 'admin/delays', hasAuth: true },
+      { name: 'Notifications', icon: '📢', endpoint: 'admin/notifications', hasAuth: true },
+      { name: 'Call Alerts', icon: '📞', endpoint: 'callAlerts', hasAuth: false }
+    ];
+
+    let testResults = { total: 0, passed: 0, failed: 0 };
+    let createdIds = {};
+
+    function getApiBase() {
+      return document.getElementById('apiBase').value;
+    }
+
+    function getToken() {
+      return document.getElementById('adminToken').value || localStorage.getItem('nxtbus_admin_token');
+    }
+
+    function getHeaders(needsAuth = false) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (needsAuth) {
+        const token = getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+      return headers;
+    }
+
+    async function loginAdmin() {
+      const apiBase = getApiBase();
+      log('🔐 Attempting admin login...', 'info');
+      
+      try {
+        const res = await fetch(`${apiBase}/auth/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: 'admin123' })
+        });
+        
+        const data = await res.json();
+        
+        if (data.token) {
+          document.getElementById('adminToken').value = data.token;
+          localStorage.setItem('nxtbus_admin_token', data.token);
+          log('✅ Login successful! Token saved.', 'success');
+        } else {
+          log('❌ Login failed: ' + (data.message || 'Unknown error'), 'error');
+        }
+      } catch (err) {
+        log('❌ Login error: ' + err.message, 'error');
+      }
+    }
+    function log(message, type = 'info') {
+      const results = document.getElementById('results');
+      const item = document.createElement('div');
+      item.className = `result-item result-${type}`;
+      item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      results.insertBefore(item, results.firstChild);
+    }
+
+    function updateSummary() {
+      document.getElementById('totalTests').textContent = testResults.total;
+      document.getElementById('passedTests').textContent = testResults.passed;
+      document.getElementById('failedTests').textContent = testResults.failed;
+      document.getElementById('pendingTests').textContent = 32 - testResults.total;
+    }
+
+    function updateModuleStatus(moduleName, status) {
+      const card = document.querySelector(`[data-module="${moduleName}"]`);
+      if (card) {
+        const statusEl = card.querySelector('.module-status');
+        statusEl.className = `module-status status-${status}`;
+        statusEl.textContent = status.toUpperCase();
+      }
+    }
+
+    function renderModules() {
+      const grid = document.getElementById('moduleGrid');
+      grid.innerHTML = modules.map(module => `
+        <div class="module-card" data-module="${module.name}">
+          <div class="module-header">
+            <div class="module-title">${module.icon} ${module.name}</div>
+            <div class="module-status status-pending">PENDING</div>
+          </div>
+          <div class="crud-buttons">
+            <button class="crud-btn btn-create" onclick="testCreate('${module.name}', '${module.endpoint}', ${module.hasAuth})">
+              ➕ CREATE
+            </button>
+            <button class="crud-btn btn-read" onclick="testRead('${module.name}', '${module.endpoint}', ${module.hasAuth})">
+              📖 READ
+            </button>
+            <button class="crud-btn btn-update" onclick="testUpdate('${module.name}', '${module.endpoint}', ${module.hasAuth})">
+              ✏️ UPDATE
+            </button>
+            <button class="crud-btn btn-delete" onclick="testDelete('${module.name}', '${module.endpoint}', ${module.hasAuth})">
+              🗑️ DELETE
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+    function getTestData(moduleName) {
+      const testData = {
+        'Owners': { name: 'Test Owner', email: 'test@owner.com', phone: '1234567890', pin: '1234', address: 'Test Address' },
+        'Buses': { number: 'TEST-001', type: 'AC', capacity: 50, status: 'active' },
+        'Routes': { name: 'Test Route', startPoint: 'Point A', endPoint: 'Point B', startLat: 12.9716, startLon: 77.5946, endLat: 13.0827, endLon: 80.2707, estimatedDuration: 60, status: 'active' },
+        'Drivers': { name: 'Test Driver', phone: '9876543210', licenseNumber: 'TEST123', pin: '1234', status: 'active' },
+        'Schedules': { busId: 'BUS001', routeId: 'ROUTE001', busNumber: 'KA-01-1234', routeName: 'Test Route', driverName: 'Test Driver', startTime: '08:00', endTime: '18:00', days: ['Mon', 'Tue', 'Wed'], status: 'active' },
+        'Delays': { busId: 'BUS001', routeId: 'ROUTE001', busNumber: 'KA-01-1234', delayMinutes: 15, reason: 'Traffic', status: 'active' },
+        'Notifications': { title: 'Test Notification', message: 'This is a test', type: 'info', priority: 'medium', status: 'active' },
+        'Call Alerts': { driverId: 'DRV001', driverName: 'Test Driver', busNumber: 'KA-01-1234', alertType: 'emergency', message: 'Test alert', priority: 'high', status: 'active' }
+      };
+      return testData[moduleName] || {};
+    }
+
+    async function testCreate(moduleName, endpoint, needsAuth) {
+      updateModuleStatus(moduleName, 'testing');
+      log(`🧪 Testing CREATE for ${moduleName}...`, 'info');
+      testResults.total++;
+      
+      try {
+        const data = getTestData(moduleName);
+        const res = await fetch(`${getApiBase()}/${endpoint}`, {
+          method: 'POST',
+          headers: getHeaders(needsAuth),
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success !== false) {
+          testResults.passed++;
+          const id = result[moduleName.toLowerCase().slice(0, -1)]?.id || result.id;
+          if (id) createdIds[moduleName] = id;
+          log(`✅ CREATE ${moduleName}: SUCCESS (${res.status})`, 'success');
+          updateModuleStatus(moduleName, 'success');
+        } else {
+          testResults.failed++;
+          log(`❌ CREATE ${moduleName}: FAILED - ${result.message || res.statusText}`, 'error');
+          updateModuleStatus(moduleName, 'failed');
+        }
+      } catch (err) {
+        testResults.failed++;
+        log(`❌ CREATE ${moduleName}: ERROR - ${err.message}`, 'error');
+        updateModuleStatus(moduleName, 'failed');
+      }
+      
+      updateSummary();
+    }
+    async function testRead(moduleName, endpoint, needsAuth) {
+      log(`🧪 Testing READ for ${moduleName}...`, 'info');
+      testResults.total++;
+      
+      try {
+        const res = await fetch(`${getApiBase()}/${endpoint}`, {
+          headers: getHeaders(needsAuth)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && Array.isArray(result)) {
+          testResults.passed++;
+          log(`✅ READ ${moduleName}: SUCCESS - Found ${result.length} items`, 'success');
+        } else {
+          testResults.failed++;
+          log(`❌ READ ${moduleName}: FAILED - ${res.statusText}`, 'error');
+        }
+      } catch (err) {
+        testResults.failed++;
+        log(`❌ READ ${moduleName}: ERROR - ${err.message}`, 'error');
+      }
+      
+      updateSummary();
+    }
+
+    async function testUpdate(moduleName, endpoint, needsAuth) {
+      log(`🧪 Testing UPDATE for ${moduleName}...`, 'info');
+      testResults.total++;
+      
+      const id = createdIds[moduleName];
+      if (!id) {
+        log(`⚠️ UPDATE ${moduleName}: SKIPPED - No ID from CREATE test`, 'info');
+        return;
+      }
+      
+      try {
+        const updateData = { status: 'inactive' };
+        const res = await fetch(`${getApiBase()}/${endpoint}/${id}`, {
+          method: 'PUT',
+          headers: getHeaders(needsAuth),
+          body: JSON.stringify(updateData)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success !== false) {
+          testResults.passed++;
+          log(`✅ UPDATE ${moduleName}: SUCCESS (${res.status})`, 'success');
+        } else {
+          testResults.failed++;
+          log(`❌ UPDATE ${moduleName}: FAILED - ${result.message || res.statusText}`, 'error');
+        }
+      } catch (err) {
+        testResults.failed++;
+        log(`❌ UPDATE ${moduleName}: ERROR - ${err.message}`, 'error');
+      }
+      
+      updateSummary();
+    }
+    async function testDelete(moduleName, endpoint, needsAuth) {
+      log(`🧪 Testing DELETE for ${moduleName}...`, 'info');
+      testResults.total++;
+      
+      const id = createdIds[moduleName];
+      if (!id) {
+        log(`⚠️ DELETE ${moduleName}: SKIPPED - No ID from CREATE test`, 'info');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${getApiBase()}/${endpoint}/${id}`, {
+          method: 'DELETE',
+          headers: getHeaders(needsAuth)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success !== false) {
+          testResults.passed++;
+          log(`✅ DELETE ${moduleName}: SUCCESS (${res.status})`, 'success');
+        } else {
+          testResults.failed++;
+          log(`❌ DELETE ${moduleName}: FAILED - ${result.message || res.statusText}`, 'error');
+        }
+      } catch (err) {
+        testResults.failed++;
+        log(`❌ DELETE ${moduleName}: ERROR - ${err.message}`, 'error');
+      }
+      
+      updateSummary();
+    }
+
+    async function testAllModules() {
+      testResults = { total: 0, passed: 0, failed: 0 };
+      createdIds = {};
+      document.getElementById('results').innerHTML = '';
+      
+      log('🚀 Starting comprehensive CRUD test suite...', 'info');
+      log('⏳ This will test CREATE, READ, UPDATE, DELETE for all modules', 'info');
+      
+      for (const module of modules) {
+        log(`\n📦 Testing ${module.name} module...`, 'info');
+        await testCreate(module.name, module.endpoint, module.hasAuth);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await testRead(module.name, module.endpoint, module.hasAuth);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await testUpdate(module.name, module.endpoint, module.hasAuth);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await testDelete(module.name, module.endpoint, module.hasAuth);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      log(`\n✅ Test suite complete! Passed: ${testResults.passed}/${testResults.total}`, 'success');
+    }
+
+    // Initialize
+    renderModules();
+  </script>
+</body>
+</html>
