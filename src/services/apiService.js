@@ -213,7 +213,9 @@ export async function updateRoute(id, updates) {
 }
 
 export async function deleteRoute(id) {
-  return remove('routes', id);
+  return fetchApi(`/admin/routes/${id}`, {
+    method: 'DELETE'
+  });
 }
 
 // ============ DRIVERS ============
