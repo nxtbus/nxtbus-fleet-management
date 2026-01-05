@@ -12,7 +12,7 @@ const patterns = {
   phone: /^\d{10}$/, // Allow any 10-digit number for testing
   pin: /^\d{4}$/,
   coordinates: /^-?\d+\.?\d*$/,
-  objectId: /^[A-Z]+\d+$/ // More flexible: any letters followed by any digits
+  objectId: /^([A-Z]+\d+|\d+)$/ // Accept both "ROUTE001" and "1" formats
 };
 
 // Sanitization helpers
