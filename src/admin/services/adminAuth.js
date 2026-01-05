@@ -27,29 +27,40 @@ const ADMIN_TOKEN_KEY = 'nxtbus_admin_token';
 // Login admin with username and password
 export async function loginAdmin(username, password) {
   try {
+    console.log('🔐 Attempting admin login:', { username, apiBase: API_BASE });
+    
     const response = await fetch(`${API_BASE}/auth/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
     
-    const data = await response.json();
+    console.log('📡 Login response status:', response.status);
     
-    if (data.success && data.token) {
+    const data = await response.json();
+    console.log('📦 Login response data:', data);
+    
+    if (data.success && data.admin) {
+      // Generate a simple token for session management
+      const token = `admin_${data.admin.id}_${Date.now()}`;
+      
       // Save session with token
       localStorage.setItem(ADMIN_KEY, JSON.stringify(data.admin));
-      localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+      localStorage.setItem(ADMIN_TOKEN_KEY, token);
       localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
         timestamp: Date.now(),
         adminId: data.admin.id
       }));
-      return { success: true, admin: data.admin, token: data.token };
+      
+      console.log('✅ Admin login successful:', data.admin.username);
+      return { success: true, admin: data.admin, token };
     } else {
-      return { success: false, message: data.message };
+      console.log('❌ Admin login failed:', data.message);
+      return { success: false, message: data.message || 'Login failed' };
     }
   } catch (error) {
-    console.error('Admin login error:', error);
-    return { success: false, message: 'Server error. Please try again.' };
+    console.error('❌ Admin login error:', error);
+    return { success: false, message: 'Server error. Please check if backend is running.' };
   }
 }
 
