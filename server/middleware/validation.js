@@ -97,6 +97,48 @@ const validateBus = [
     .withMessage('Driver ID must be in format ABC123')
 ];
 
+// Partial bus validation (for updates with only some fields)
+const validateBusPartial = [
+  body('number')
+    .optional()
+    .matches(patterns.busNumber)
+    .withMessage('Bus number must be 2-10 characters, letters and numbers only')
+    .customSanitizer(sanitizeString),
+  body('type')
+    .optional()
+    .isIn(['AC', 'Non-AC', 'Electric', 'Diesel'])
+    .withMessage('Bus type must be AC, Non-AC, Electric, or Diesel'),
+  body('capacity')
+    .optional()
+    .custom(isValidCapacity)
+    .withMessage('Capacity must be between 10 and 100'),
+  body('status')
+    .optional()
+    .isIn(['active', 'maintenance', 'inactive'])
+    .withMessage('Status must be active, maintenance, or inactive'),
+  body('ownerId')
+    .optional()
+    .matches(patterns.objectId)
+    .withMessage('Owner ID must be in format ABC123')
+    .customSanitizer(sanitizeString),
+  body('assignedDrivers')
+    .optional()
+    .isArray()
+    .withMessage('Assigned drivers must be an array'),
+  body('assignedDrivers.*')
+    .optional()
+    .matches(patterns.objectId)
+    .withMessage('Driver ID must be in format ABC123'),
+  body('assignedRoutes')
+    .optional()
+    .isArray()
+    .withMessage('Assigned routes must be an array'),
+  body('assignedRoutes.*')
+    .optional()
+    .matches(patterns.objectId)
+    .withMessage('Route ID must be in format ABC123')
+];
+
 // Route validation
 const validateRoute = [
   body('name')
@@ -351,6 +393,7 @@ module.exports = {
   validateLogin,
   validateAdminLogin,
   validateBus,
+  validateBusPartial,
   validateRoute,
   validateDriver,
   validateGPS,

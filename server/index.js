@@ -104,6 +104,7 @@ const {
   validateLogin,
   validateAdminLogin,
   validateBus,
+  validateBusPartial,
   validateRoute,
   validateDriver,
   validateGPS,
@@ -906,7 +907,7 @@ app.post('/api/admin/buses',
 
 app.put('/api/admin/buses/:id',
   validateObjectId,
-  validateBus,
+  validateBusPartial,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { id } = req.params;

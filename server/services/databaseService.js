@@ -218,8 +218,19 @@ class DatabaseService {
   }
 
   async updateBus(id, updates) {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const values = [id, ...Object.values(updates)];
+    // Filter out undefined values to only update provided fields
+    const filteredUpdates = Object.entries(updates)
+      .filter(([key, value]) => value !== undefined)
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
+    if (Object.keys(filteredUpdates).length === 0) {
+      // If no fields to update, just return the existing bus
+      const result = await this.query('SELECT * FROM buses WHERE id = $1', [id]);
+      return result.rows[0];
+    }
+    
+    const fields = Object.keys(filteredUpdates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(filteredUpdates)];
     
     const result = await this.query(
       `UPDATE buses SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
