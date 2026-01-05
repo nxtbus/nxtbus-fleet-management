@@ -72,6 +72,9 @@ async function fetchApi(endpoint, options = {}) {
   // Add authentication header if admin token is available
   const headers = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     ...options.headers
   };
   
@@ -84,6 +87,7 @@ async function fetchApi(endpoint, options = {}) {
     const response = await fetch(url, {
       ...options,
       headers,
+      cache: 'no-store', // Disable browser cache
     });
     
     console.log('📡 API Response:', response.status, response.statusText);
