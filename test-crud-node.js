@@ -59,7 +59,7 @@ function getHeaders(needsAuth = false) {
 function getTestData(moduleName) {
   const testData = {
     'Owners': { name: 'Test Owner', email: 'test@owner.com', phone: '1234567890', pin: '1234', address: 'Test Address', companyName: 'Test Company', licenseNumber: 'LIC123' },
-    'Buses': { number: 'TEST-001', type: 'AC', capacity: 50, status: 'active', ownerId: 'OWN001', model: 'Volvo', year: 2024, fuelType: 'Diesel' },
+    'Buses': { number: 'TEST001', type: 'AC', capacity: 50, status: 'active', ownerId: 'OWN001', model: 'Volvo', year: 2024, fuelType: 'Diesel' },
     'Routes': { name: 'Test Route', startPoint: 'Point A', endPoint: 'Point B', startLat: 12.9716, startLon: 77.5946, endLat: 13.0827, endLon: 80.2707, estimatedDuration: 60, distance: 25, fare: 50, status: 'active' },
     'Drivers': { name: 'Test Driver', phone: '9876543210', licenseNumber: 'DL-TEST-123', pin: '1234', status: 'active', experienceYears: 5 },
     'Schedules': { busId: 'BUS001', routeId: 'ROUTE001', busNumber: 'KA-01-1234', routeName: 'Test Route', driverName: 'Test Driver', startTime: '08:00', endTime: '18:00', days: ['Mon', 'Tue', 'Wed'], status: 'active' },
