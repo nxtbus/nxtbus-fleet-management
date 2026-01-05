@@ -385,6 +385,328 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+// ============ ADMIN SPECIFIC ROUTES (must be before generic routes) ============
+
+// Admin buses endpoints
+app.get('/api/admin/buses', (req, res) => {
+  const data = readData('buses');
+  res.json(data);
+});
+
+app.post('/api/admin/buses', (req, res) => {
+  const data = readData('buses');
+  const newItem = req.body;
+  
+  if (!newItem.id) {
+    const maxId = data.reduce((max, item) => {
+      const num = parseInt(item.id?.replace(/\D/g, '')) || 0;
+      return num > max ? num : max;
+    }, 0);
+    newItem.id = `BUS${String(maxId + 1).padStart(3, '0')}`;
+  }
+  
+  data.push(newItem);
+  writeData('buses', data);
+  res.status(201).json(newItem);
+});
+
+app.put('/api/admin/buses/:id', (req, res) => {
+  const { id } = req.params;
+  const data = readData('buses');
+  const index = data.findIndex(d => d.id === id);
+  
+  if (index === -1) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  data[index] = { ...data[index], ...req.body };
+  writeData('buses', data);
+  res.json(data[index]);
+});
+
+app.delete('/api/admin/buses/:id', (req, res) => {
+  const { id } = req.params;
+  let data = readData('buses');
+  const initialLength = data.length;
+  
+  data = data.filter(d => d.id !== id);
+  
+  if (data.length === initialLength) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  writeData('buses', data);
+  res.json({ success: true });
+});
+
+// Admin routes endpoints
+app.get('/api/admin/routes', (req, res) => {
+  const data = readData('routes');
+  res.json(data);
+});
+
+app.post('/api/admin/routes', (req, res) => {
+  const data = readData('routes');
+  const newItem = req.body;
+  
+  if (!newItem.id) {
+    const maxId = data.reduce((max, item) => {
+      const num = parseInt(item.id?.replace(/\D/g, '')) || 0;
+      return num > max ? num : max;
+    }, 0);
+    newItem.id = `ROUTE${String(maxId + 1).padStart(3, '0')}`;
+  }
+  
+  data.push(newItem);
+  writeData('routes', data);
+  res.status(201).json(newItem);
+});
+
+app.put('/api/admin/routes/:id', (req, res) => {
+  const { id } = req.params;
+  const data = readData('routes');
+  const index = data.findIndex(d => d.id === id);
+  
+  if (index === -1) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  data[index] = { ...data[index], ...req.body };
+  writeData('routes', data);
+  res.json(data[index]);
+});
+
+app.delete('/api/admin/routes/:id', (req, res) => {
+  const { id } = req.params;
+  let data = readData('routes');
+  const initialLength = data.length;
+  
+  data = data.filter(d => d.id !== id);
+  
+  if (data.length === initialLength) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  writeData('routes', data);
+  res.json({ success: true });
+});
+
+// Admin drivers endpoints
+app.get('/api/admin/drivers', (req, res) => {
+  const data = readData('drivers');
+  res.json(data);
+});
+
+app.post('/api/admin/drivers', (req, res) => {
+  const data = readData('drivers');
+  const newItem = req.body;
+  
+  if (!newItem.id) {
+    const maxId = data.reduce((max, item) => {
+      const num = parseInt(item.id?.replace(/\D/g, '')) || 0;
+      return num > max ? num : max;
+    }, 0);
+    newItem.id = `DRV${String(maxId + 1).padStart(3, '0')}`;
+  }
+  
+  data.push(newItem);
+  writeData('drivers', data);
+  res.status(201).json(newItem);
+});
+
+app.put('/api/admin/drivers/:id', (req, res) => {
+  const { id } = req.params;
+  const data = readData('drivers');
+  const index = data.findIndex(d => d.id === id);
+  
+  if (index === -1) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  data[index] = { ...data[index], ...req.body };
+  writeData('drivers', data);
+  res.json(data[index]);
+});
+
+app.delete('/api/admin/drivers/:id', (req, res) => {
+  const { id } = req.params;
+  let data = readData('drivers');
+  const initialLength = data.length;
+  
+  data = data.filter(d => d.id !== id);
+  
+  if (data.length === initialLength) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  writeData('drivers', data);
+  res.json({ success: true });
+});
+
+// Admin delays endpoints
+app.get('/api/admin/delays', (req, res) => {
+  const data = readData('delays');
+  res.json(data);
+});
+
+app.post('/api/admin/delays', (req, res) => {
+  const data = readData('delays');
+  const newItem = req.body;
+  
+  if (!newItem.id) {
+    const maxId = data.reduce((max, item) => {
+      const num = parseInt(item.id?.replace(/\D/g, '')) || 0;
+      return num > max ? num : max;
+    }, 0);
+    newItem.id = `DEL${String(maxId + 1).padStart(3, '0')}`;
+  }
+  
+  data.push(newItem);
+  writeData('delays', data);
+  res.status(201).json(newItem);
+});
+
+app.put('/api/admin/delays/:id', (req, res) => {
+  const { id } = req.params;
+  const data = readData('delays');
+  const index = data.findIndex(d => d.id === id);
+  
+  if (index === -1) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  data[index] = { ...data[index], ...req.body };
+  writeData('delays', data);
+  res.json(data[index]);
+});
+
+app.delete('/api/admin/delays/:id', (req, res) => {
+  const { id } = req.params;
+  let data = readData('delays');
+  const initialLength = data.length;
+  
+  data = data.filter(d => d.id !== id);
+  
+  if (data.length === initialLength) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  writeData('delays', data);
+  res.json({ success: true });
+});
+
+// Admin notifications endpoints
+app.get('/api/admin/notifications', (req, res) => {
+  const data = readData('notifications');
+  res.json(data);
+});
+
+app.post('/api/admin/notifications', (req, res) => {
+  const data = readData('notifications');
+  const newItem = req.body;
+  
+  if (!newItem.id) {
+    const maxId = data.reduce((max, item) => {
+      const num = parseInt(item.id?.replace(/\D/g, '')) || 0;
+      return num > max ? num : max;
+    }, 0);
+    newItem.id = `NOT${String(maxId + 1).padStart(3, '0')}`;
+  }
+  
+  data.push(newItem);
+  writeData('notifications', data);
+  res.status(201).json(newItem);
+});
+
+app.delete('/api/admin/notifications/:id', (req, res) => {
+  const { id } = req.params;
+  let data = readData('notifications');
+  const initialLength = data.length;
+  
+  data = data.filter(d => d.id !== id);
+  
+  if (data.length === initialLength) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  writeData('notifications', data);
+  res.json({ success: true });
+});
+
+// Admin owners endpoints
+app.get('/api/admin/owners', (req, res) => {
+  const data = readData('owners');
+  res.json(data);
+});
+
+app.get('/api/admin/owners/:id', (req, res) => {
+  const { id } = req.params;
+  const data = readData('owners');
+  const item = data.find(d => d.id === id);
+  if (item) {
+    res.json(item);
+  } else {
+    res.status(404).json({ error: 'Not found' });
+  }
+});
+
+app.post('/api/admin/owners', (req, res) => {
+  const data = readData('owners');
+  const newItem = req.body;
+  
+  if (!newItem.id) {
+    const maxId = data.reduce((max, item) => {
+      const num = parseInt(item.id?.replace(/\D/g, '')) || 0;
+      return num > max ? num : max;
+    }, 0);
+    newItem.id = `OWN${String(maxId + 1).padStart(3, '0')}`;
+  }
+  
+  data.push(newItem);
+  writeData('owners', data);
+  res.status(201).json(newItem);
+});
+
+app.put('/api/admin/owners/:id', (req, res) => {
+  const { id } = req.params;
+  const data = readData('owners');
+  const index = data.findIndex(d => d.id === id);
+  
+  if (index === -1) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  data[index] = { ...data[index], ...req.body };
+  writeData('owners', data);
+  res.json(data[index]);
+});
+
+app.delete('/api/admin/owners/:id', (req, res) => {
+  const { id } = req.params;
+  let data = readData('owners');
+  const initialLength = data.length;
+  
+  data = data.filter(d => d.id !== id);
+  
+  if (data.length === initialLength) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  
+  writeData('owners', data);
+  res.json({ success: true });
+});
+
 // ============ GENERIC COLLECTION ROUTES ============
 
 // Get all data for a collection
