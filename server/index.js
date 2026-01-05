@@ -1005,7 +1005,7 @@ app.post('/api/admin/routes',
 
 app.put('/api/admin/routes/:id',
   validateObjectId,
-  validateRoute,
+  validateRoutePartial,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
     const { id } = req.params;

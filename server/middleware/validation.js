@@ -187,6 +187,62 @@ const validateRoute = [
     .withMessage('Stop longitude must be a valid coordinate')
 ];
 
+// Route validation (partial - for updates)
+const validateRoutePartial = [
+  body('name')
+    .optional()
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Route name must be between 3 and 100 characters')
+    .customSanitizer(sanitizeString),
+  body('startPoint')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Start point must be between 2 and 100 characters')
+    .customSanitizer(sanitizeString),
+  body('endPoint')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('End point must be between 2 and 100 characters')
+    .customSanitizer(sanitizeString),
+  body('startLat')
+    .optional()
+    .custom(isValidCoordinate)
+    .withMessage('Start latitude must be a valid coordinate'),
+  body('startLon')
+    .optional()
+    .custom(isValidCoordinate)
+    .withMessage('Start longitude must be a valid coordinate'),
+  body('endLat')
+    .optional()
+    .custom(isValidCoordinate)
+    .withMessage('End latitude must be a valid coordinate'),
+  body('endLon')
+    .optional()
+    .custom(isValidCoordinate)
+    .withMessage('End longitude must be a valid coordinate'),
+  body('estimatedDuration')
+    .optional()
+    .isInt({ min: 5, max: 300 })
+    .withMessage('Estimated duration must be between 5 and 300 minutes'),
+  body('stops')
+    .optional()
+    .isArray()
+    .withMessage('Stops must be an array'),
+  body('stops.*.name')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Stop name must be between 2 and 100 characters')
+    .customSanitizer(sanitizeString),
+  body('stops.*.lat')
+    .optional()
+    .custom(isValidCoordinate)
+    .withMessage('Stop latitude must be a valid coordinate'),
+  body('stops.*.lon')
+    .optional()
+    .custom(isValidCoordinate)
+    .withMessage('Stop longitude must be a valid coordinate')
+];
+
 // Driver validation
 const validateDriver = [
   body('name')
@@ -395,6 +451,7 @@ module.exports = {
   validateBus,
   validateBusPartial,
   validateRoute,
+  validateRoutePartial,
   validateDriver,
   validateGPS,
   validateTrip,
