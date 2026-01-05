@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Delay Endpoints</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f9f9f9;
+      border-left: 4px solid #4CAF50;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .error {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    .success {
+      border-left-color: #4CAF50;
+      background: #e8f5e9;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test Delay Endpoints</h1>
+  
+  <div class="test-section">
+    <h2>1. Login as Admin</h2>
+    <button onclick="loginAdmin()">Login</button>
+    <div id="login-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Create Delay (POST /api/admin/delays)</h2>
+    <button onclick="createDelay()">Create Delay</button>
+    <div id="create-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. Update Delay (PUT /api/admin/delays/:id)</h2>
+    <button onclick="updateDelay()">Update Delay Status</button>
+    <div id="update-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>4. Delete Delay (DELETE /api/admin/delays/:id)</h2>
+    <button onclick="deleteDelay()">Delete Delay</button>
+    <div id="delete-result" class="result"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+    let adminToken = '';
+    let createdDelayId = '';
+
+    function showResult(elementId, message, isError = false) {
+      const element = document.getElementById(elementId);
+      element.textContent = message;
+      element.className = isError ? 'result error' : 'result success';
+    }
+
+    async function loginAdmin() {
+      try {
+        const response = await fetch(`${API_BASE}/auth/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: 'admin123' })
+        });
+
+        const data = await response.json();
+        
+        if (data.token) {
+          adminToken = data.token;
+          showResult('login-result', `✅ Login successful!\nToken: ${adminToken.substring(0, 20)}...`);
+        } else {
+          showResult('login-result', `❌ Login failed: ${data.message}`, true);
+        }
+      } catch (err) {
+        showResult('login-result', `❌ Error: ${err.message}`, true);
+      }
+    }
+
+    async function createDelay() {
+      if (!adminToken) {
+        showResult('create-result', '❌ Please login first!', true);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/delays`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({
+            busId: 'BUS001',
+            routeId: 'ROUTE001',
+            busNumber: 'TEST-DELAY-001',
+            delayMinutes: 15,
+            reason: 'Test delay from endpoint test',
+            status: 'active'
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          createdDelayId = data.delay.id;
+          showResult('create-result', `✅ Delay created successfully!\n${JSON.stringify(data, null, 2)}`);
+        } else {
+          showResult('create-result', `❌ Failed: ${data.message || response.statusText}\n${JSON.stringify(data, null, 2)}`, true);
+        }
+      } catch (err) {
+        showResult('create-result', `❌ Error: ${err.message}`, true);
+      }
+    }
+
+    async function updateDelay() {
+      if (!adminToken) {
+        showResult('update-result', '❌ Please login first!', true);
+        return;
+      }
+
+      if (!createdDelayId) {
+        showResult('update-result', '❌ Please create a delay first!', true);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/delays/${createdDelayId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({
+            status: 'resolved'
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          showResult('update-result', `✅ Delay updated successfully!\n${JSON.stringify(data, null, 2)}`);
+        } else {
+          showResult('update-result', `❌ Failed: ${data.message || response.statusText}\n${JSON.stringify(data, null, 2)}`, true);
+        }
+      } catch (err) {
+        showResult('update-result', `❌ Error: ${err.message}`, true);
+      }
+    }
+
+    async function deleteDelay() {
+      if (!adminToken) {
+        showResult('delete-result', '❌ Please login first!', true);
+        return;
+      }
+
+      if (!createdDelayId) {
+        showResult('delete-result', '❌ Please create a delay first!', true);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/delays/${createdDelayId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          }
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          showResult('delete-result', `✅ Delay deleted successfully!\n${JSON.stringify(data, null, 2)}`);
+          createdDelayId = ''; // Reset for next test
+        } else {
+          showResult('delete-result', `❌ Failed: ${data.message || response.statusText}\n${JSON.stringify(data, null, 2)}`, true);
+        }
+      } catch (err) {
+        showResult('delete-result', `❌ Error: ${err.message}`, true);
+      }
+    }
+  </script>
+</body>
+</html>
