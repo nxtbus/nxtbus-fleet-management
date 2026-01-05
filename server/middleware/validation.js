@@ -12,7 +12,7 @@ const patterns = {
   phone: /^\d{10}$/, // Allow any 10-digit number for testing
   pin: /^\d{4}$/,
   coordinates: /^-?\d+\.?\d*$/,
-  objectId: /^[A-Z]{3}\d{3}$/
+  objectId: /^[A-Z]+\d+$/ // More flexible: any letters followed by any digits
 };
 
 // Sanitization helpers
