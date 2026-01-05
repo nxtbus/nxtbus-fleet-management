@@ -15,10 +15,27 @@ class DriverGPSSimulator {
    * Initialize simulator with route data
    */
   async initialize() {
+    if (!this.isEnabled) {
+      console.log('GPS simulation disabled');
+      return;
+    }
+
     try {
+      // Get API base URL
+      const API_BASE = this.getAPIBase();
+      
       // Fetch routes from server
-      const response = await fetch('/api/routes');
+      const response = await fetch(`${API_BASE}/routes`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const routes = await response.json();
+      
+      if (!Array.isArray(routes)) {
+        throw new Error('Invalid routes data received');
+      }
       
       routes.forEach(route => {
         this.routes.set(route.id, route);
@@ -27,7 +44,21 @@ class DriverGPSSimulator {
       console.log('🛰️ Driver GPS Simulator initialized with', routes.length, 'routes');
     } catch (error) {
       console.error('Failed to initialize GPS simulator:', error);
+      // Don't throw - allow app to continue without simulation
     }
+  }
+
+  /**
+   * Get API base URL
+   */
+  getAPIBase() {
+    // Production: use Render backend URL
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return 'https://nxtbus-backend.onrender.com/api';
+    }
+    
+    // Development: use localhost
+    return 'http://localhost:3001/api';
   }
 
   /**

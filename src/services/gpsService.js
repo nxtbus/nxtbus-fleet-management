@@ -42,11 +42,13 @@ class GPSService {
       const position = await this.getCurrentPosition();
       return {
         granted: true,
-        accuracy: position.coords.accuracy,
-        timestamp: position.timestamp
+        accuracy: position?.coords?.accuracy || position?.accuracy || 0,
+        timestamp: position?.timestamp || Date.now()
       };
     } catch (error) {
-      throw new Error(`GPS permission denied: ${error.message}`);
+      // Handle different error types
+      const errorMessage = error?.message || String(error);
+      throw new Error(`GPS permission denied: ${errorMessage}`);
     }
   }
 
