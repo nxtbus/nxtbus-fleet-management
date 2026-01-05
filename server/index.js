@@ -80,7 +80,10 @@ if (process.env.ENABLE_RATE_LIMITING === 'true') {
       'X-Requested-With',
       'X-API-Key',
       'X-Client-Version',
-      'X-Request-ID'
+      'X-Request-ID',
+      'Cache-Control',
+      'Pragma',
+      'Expires'
     ]
   };
   requestSizeLimits = {
