@@ -38,9 +38,9 @@ function DelayAlerts() {
   const filteredDelays = delays.filter(d => {
     const matchesFilter = filter === 'all' || d.status === filter;
     const matchesSearch = !searchTerm || 
-      d.busNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.routeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.reason.toLowerCase().includes(searchTerm.toLowerCase());
+      (d.busNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (d.routeId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (d.reason || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -173,10 +173,10 @@ function DelayAlerts() {
             {Object.entries(stats.byReason).map(([reason, count]) => (
               <div key={reason} className="ultra-reason-card">
                 <div className="reason-icon">
-                  {reason.toLowerCase().includes('traffic') ? '🚗' :
-                   reason.toLowerCase().includes('breakdown') ? '🔧' :
-                   reason.toLowerCase().includes('weather') ? '🌧️' :
-                   reason.toLowerCase().includes('diversion') ? '🔀' : '⚠️'}
+                  {(reason || '').toLowerCase().includes('traffic') ? '🚗' :
+                   (reason || '').toLowerCase().includes('breakdown') ? '🔧' :
+                   (reason || '').toLowerCase().includes('weather') ? '🌧️' :
+                   (reason || '').toLowerCase().includes('diversion') ? '🔀' : '⚠️'}
                 </div>
                 <div className="reason-content">
                   <span className="reason-name">{reason}</span>

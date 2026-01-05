@@ -429,6 +429,24 @@ class DatabaseService {
     return result.rows[0];
   }
 
+  async updateSchedule(id, scheduleData) {
+    const { bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status } = scheduleData;
+    
+    const result = await this.query(
+      `UPDATE schedules 
+       SET bus_id = $1, route_id = $2, bus_number = $3, route_name = $4, 
+           driver_name = $5, start_time = $6, end_time = $7, days = $8, status = $9
+       WHERE id = $10 RETURNING *`,
+      [bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status, id]
+    );
+    return result.rows[0];
+  }
+
+  async deleteSchedule(id) {
+    const result = await this.query('DELETE FROM schedules WHERE id = $1 RETURNING *', [id]);
+    return result.rows[0];
+  }
+
   // ============ NOTIFICATIONS ============
   
   async getNotifications() {

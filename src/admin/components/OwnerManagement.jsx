@@ -129,9 +129,9 @@ function OwnerManagement() {
 
   const filteredOwners = owners.filter(owner => {
     const matchesStatus = filterStatus === 'all' || owner.status === filterStatus;
-    const matchesSearch = owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         owner.phone.includes(searchTerm);
+    const matchesSearch = (owner.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (owner.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (owner.phone || '').includes(searchTerm);
     return matchesStatus && matchesSearch;
   });
 

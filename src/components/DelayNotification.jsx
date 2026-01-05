@@ -42,7 +42,7 @@ export function DelayBadge({ delayMinutes, severity = 'LOW' }) {
   if (!delayMinutes || delayMinutes < 5) return null;
 
   return (
-    <span className={`delay-badge ${severity.toLowerCase()}`}>
+    <span className={`delay-badge ${(severity || 'LOW').toLowerCase()}`}>
       ⏰ +{delayMinutes} min
     </span>
   );

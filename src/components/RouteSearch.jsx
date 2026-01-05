@@ -100,7 +100,7 @@ function RouteSearch() {
   }, [])
 
   // Helper function for case-insensitive comparison
-  const normalizeLocationName = (name) => name?.toLowerCase().trim()
+  const normalizeLocationName = (name) => name ? name.toLowerCase().trim() : ''
   
   // Check if a location is on a route (start, end, or stop) - case insensitive
   const isLocationOnRoute = (route, locationName) => {

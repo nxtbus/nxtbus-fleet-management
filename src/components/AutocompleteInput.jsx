@@ -34,6 +34,7 @@ function AutocompleteInput({
       setFilteredOptions([]);
     } else {
       const filtered = options.filter(opt => 
+        opt && opt.name && 
         opt.name.toLowerCase().includes(inputValue.toLowerCase()) &&
         opt.name.toLowerCase() !== excludeValue?.toLowerCase()
       );
@@ -41,6 +42,7 @@ function AutocompleteInput({
       // Deduplicate by case-insensitive name (keep first occurrence)
       const seen = new Set();
       const deduplicated = filtered.filter(opt => {
+        if (!opt || !opt.name) return false;
         const normalizedName = opt.name.toLowerCase().trim();
         if (seen.has(normalizedName)) {
           return false;
@@ -72,7 +74,7 @@ function AutocompleteInput({
     setShowSuggestions(true);
     
     const exactMatch = options.find(opt => 
-      opt.name.toLowerCase() === newValue.toLowerCase()
+      opt && opt.name && opt.name.toLowerCase() === newValue.toLowerCase()
     );
     
     if (exactMatch) {

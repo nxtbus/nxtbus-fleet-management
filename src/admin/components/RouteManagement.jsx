@@ -117,9 +117,9 @@ function RouteManagement() {
 
   // Filter routes based on search and status
   const filteredRoutes = routes.filter(route => {
-    const matchesSearch = route.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         route.startPoint?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         route.endPoint?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (route.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (route.startPoint || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (route.endPoint || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || route.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -127,7 +127,8 @@ function RouteManagement() {
   // Check for existing stops from routes with same destination
   const checkForExistingStops = (endPoint) => {
     const routesWithSameDestination = routes.filter(r => 
-      r.endPoint?.toLowerCase() === endPoint?.toLowerCase() &&
+      r.endPoint && endPoint && 
+      r.endPoint.toLowerCase() === endPoint.toLowerCase() &&
       r.stops && r.stops.length > 0
     );
     
@@ -136,6 +137,7 @@ function RouteManagement() {
       routesWithSameDestination.forEach(route => {
         route.stops.forEach(stop => {
           const exists = allStops.some(s => 
+            s.name && stop.name && 
             s.name.toLowerCase() === stop.name.toLowerCase()
           );
           if (!exists) {

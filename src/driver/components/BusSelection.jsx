@@ -167,7 +167,7 @@ function BusSelection({ driver, onBusSelected, onBack }) {
                       <span className="bus-icon">🚌</span>
                       <span className="bus-number">{schedule.bus?.number || schedule.busNumber}</span>
                       {schedule.bus?.type && (
-                        <span className={`bus-type ${schedule.bus.type.toLowerCase()}`}>
+                        <span className={`bus-type ${(schedule.bus.type || '').toLowerCase()}`}>
                           {schedule.bus.type}
                         </span>
                       )}
@@ -207,7 +207,7 @@ function BusSelection({ driver, onBusSelected, onBack }) {
                   >
                     <div className="bus-number">{bus.number}</div>
                     <div className="bus-meta">
-                      <span className={`bus-type ${bus.type.toLowerCase()}`}>{bus.type}</span>
+                      <span className={`bus-type ${(bus.type || '').toLowerCase()}`}>{bus.type}</span>
                       <span className="bus-capacity">{bus.capacity} seats</span>
                     </div>
                   </div>

@@ -1183,6 +1183,77 @@ app.post('/api/admin/delays',
   })
 );
 
+// Schedule management
+app.get('/api/admin/schedules',
+  asyncHandler(async (req, res) => {
+    const schedules = await db.getSchedules();
+    res.json(schedules);
+  })
+);
+
+app.post('/api/schedules',
+  asyncHandler(async (req, res) => {
+    const schedules = await db.getSchedules();
+    const newSchedule = {
+      id: `SCH${String(schedules.length + 1).padStart(3, '0')}`,
+      bus_id: req.body.busId,
+      route_id: req.body.routeId,
+      bus_number: req.body.busNumber,
+      route_name: req.body.routeName,
+      driver_name: req.body.driverName,
+      start_time: req.body.startTime,
+      end_time: req.body.endTime,
+      days: req.body.days,
+      status: req.body.status || 'active'
+    };
+    
+    const createdSchedule = await db.addSchedule(newSchedule);
+    res.status(201).json({ success: true, schedule: createdSchedule });
+  })
+);
+
+app.put('/api/schedules/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const scheduleData = {
+      bus_id: req.body.busId,
+      route_id: req.body.routeId,
+      bus_number: req.body.busNumber,
+      route_name: req.body.routeName,
+      driver_name: req.body.driverName,
+      start_time: req.body.startTime,
+      end_time: req.body.endTime,
+      days: req.body.days,
+      status: req.body.status
+    };
+    
+    const updatedSchedule = await db.updateSchedule(id, scheduleData);
+    
+    if (!updatedSchedule) {
+      throw new NotFoundError('Schedule');
+    }
+    
+    res.json({ success: true, schedule: updatedSchedule });
+  })
+);
+
+app.delete('/api/schedules/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const deleted = await db.deleteSchedule(id);
+    
+    if (!deleted) {
+      throw new NotFoundError('Schedule');
+    }
+    
+    res.json({ success: true, message: 'Schedule deleted successfully' });
+  })
+);
+
 // Notification management
 app.get('/api/admin/notifications',
   asyncHandler(async (req, res) => {
