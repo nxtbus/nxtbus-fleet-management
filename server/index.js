@@ -106,6 +106,7 @@ const {
   validateBus,
   validateBusPartial,
   validateRoute,
+  validateRoutePartial,
   validateDriver,
   validateGPS,
   validateTrip,
