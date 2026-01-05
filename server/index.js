@@ -1160,6 +1160,33 @@ app.post('/api/admin/owners',
   })
 );
 
+app.put('/api/admin/owners/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const updatedOwner = await db.updateOwner(id, req.body);
+    
+    if (!updatedOwner) {
+      throw new NotFoundError('Owner');
+    }
+    
+    // Return without password
+    const { password, ...safeOwner } = updatedOwner;
+    res.json({ success: true, owner: safeOwner });
+  })
+);
+
+app.delete('/api/admin/owners/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const deleted = await db.deleteOwner(id);
+    res.json({ success: true, message: 'Owner deleted successfully' });
+  })
+);
+
 // Delay management
 app.get('/api/admin/delays',
   asyncHandler(async (req, res) => {
@@ -1181,6 +1208,36 @@ app.post('/api/admin/delays',
     
     const createdDelay = await db.addDelay(newDelay);
     res.status(201).json({ success: true, delay: createdDelay });
+  })
+);
+
+app.put('/api/admin/delays/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const updatedDelay = await db.updateDelay(id, req.body);
+    
+    if (!updatedDelay) {
+      throw new NotFoundError('Delay');
+    }
+    
+    res.json({ success: true, delay: updatedDelay });
+  })
+);
+
+app.delete('/api/admin/delays/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const deleted = await db.deleteDelay(id);
+    
+    if (!deleted) {
+      throw new NotFoundError('Delay');
+    }
+    
+    res.json({ success: true, message: 'Delay deleted successfully' });
   })
 );
 
@@ -1278,6 +1335,36 @@ app.post('/api/admin/notifications',
     
     const createdNotification = await db.addNotification(newNotification);
     res.status(201).json({ success: true, notification: createdNotification });
+  })
+);
+
+app.put('/api/admin/notifications/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const updatedNotification = await db.updateNotification(id, req.body);
+    
+    if (!updatedNotification) {
+      throw new NotFoundError('Notification');
+    }
+    
+    res.json({ success: true, notification: updatedNotification });
+  })
+);
+
+app.delete('/api/admin/notifications/:id',
+  validateObjectId,
+  validationErrorHandler,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const deleted = await db.deleteNotification(id);
+    
+    if (!deleted) {
+      throw new NotFoundError('Notification');
+    }
+    
+    res.json({ success: true, message: 'Notification deleted successfully' });
   })
 );
 

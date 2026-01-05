@@ -527,6 +527,32 @@ class DatabaseService {
     return result.rows[0];
   }
 
+  async updateNotification(id, updates) {
+    // Filter out undefined values
+    const filteredUpdates = Object.entries(updates)
+      .filter(([key, value]) => value !== undefined)
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
+    if (Object.keys(filteredUpdates).length === 0) {
+      const result = await this.query('SELECT * FROM notifications WHERE id = $1', [id]);
+      return result.rows[0];
+    }
+    
+    const fields = Object.keys(filteredUpdates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(filteredUpdates)];
+    
+    const result = await this.query(
+      `UPDATE notifications SET ${fields} WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  async deleteNotification(id) {
+    const result = await this.query('DELETE FROM notifications WHERE id = $1 RETURNING *', [id]);
+    return result.rows[0];
+  }
+
   // ============ FEEDBACKS ============
   
   async getFeedbacks() {
@@ -585,6 +611,32 @@ class DatabaseService {
        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) RETURNING *`,
       [id, bus_id, bus_number, route_id, delay_minutes, reason, status]
     );
+    return result.rows[0];
+  }
+
+  async updateDelay(id, updates) {
+    // Filter out undefined values
+    const filteredUpdates = Object.entries(updates)
+      .filter(([key, value]) => value !== undefined)
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
+    if (Object.keys(filteredUpdates).length === 0) {
+      const result = await this.query('SELECT * FROM delays WHERE id = $1', [id]);
+      return result.rows[0];
+    }
+    
+    const fields = Object.keys(filteredUpdates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(filteredUpdates)];
+    
+    const result = await this.query(
+      `UPDATE delays SET ${fields} WHERE id = $1 RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  }
+
+  async deleteDelay(id) {
+    const result = await this.query('DELETE FROM delays WHERE id = $1 RETURNING *', [id]);
     return result.rows[0];
   }
 
@@ -656,8 +708,18 @@ class DatabaseService {
   }
 
   async updateOwner(id, updates) {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const values = [id, ...Object.values(updates)];
+    // Filter out undefined values
+    const filteredUpdates = Object.entries(updates)
+      .filter(([key, value]) => value !== undefined)
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
+    if (Object.keys(filteredUpdates).length === 0) {
+      const result = await this.query('SELECT * FROM owners WHERE id = $1', [id]);
+      return result.rows[0];
+    }
+    
+    const fields = Object.keys(filteredUpdates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(filteredUpdates)];
     
     const result = await this.query(
       `UPDATE owners SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
@@ -667,7 +729,7 @@ class DatabaseService {
   }
 
   async deleteOwner(id) {
-    await this.query('UPDATE owners SET status = $1 WHERE id = $2', ['deleted', id]);
+    await this.query('UPDATE owners SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['deleted', id]);
     return { success: true };
   }
 

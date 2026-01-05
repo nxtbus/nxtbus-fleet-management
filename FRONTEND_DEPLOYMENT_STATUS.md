@@ -39,11 +39,44 @@
   - `PUT /api/schedules/:id` - Update schedule
   - `DELETE /api/schedules/:id` - Delete schedule
 
-### 4. Data Display Issues Resolved
+### 4. Bus Update Validation Fixed
+- **Status**: ✅ COMPLETE (waiting for Render deployment)
+- **Issue**: `PUT /api/admin/buses/:id` returning 400 validation error when updating only `assignedRoutes`
+- **Root Cause**: Validation required all bus fields, but partial updates only sent changed fields
+- **Solution**: Created `validateBusPartial` middleware and updated `updateBus()` to handle partial updates
+- **Files Updated**:
+  - `server/middleware/validation.js` - Added `validateBusPartial` for optional field validation
+  - `server/index.js` - Updated bus PUT endpoint to use `validateBusPartial`
+  - `server/services/databaseService.js` - Fixed `updateBus()` to filter undefined values
+
+### 5. Schedule Display Fixed
+- **Status**: ✅ COMPLETE (waiting for Render deployment)
+- **Issue**: Schedules being saved but not displaying in frontend list
+- **Root Cause**: Multiple issues:
+  1. `getSchedules()` was hardcoded to return empty array
+  2. Used non-existent `read()` function
+  3. Database returned snake_case fields but frontend expected camelCase
+- **Solution**: 
+  - Fixed `getSchedules()` to call `fetchApi('/schedules')`
+  - Added field mapping in database service to convert snake_case to camelCase
+- **Files Updated**:
+  - `src/services/apiService.js` - Fixed `getSchedules()` to fetch from API
+  - `server/services/databaseService.js` - Added field mapping in `getSchedules()`, `addSchedule()`, `updateSchedule()`
+- **Field Mapping**:
+  - `route_id` → `routeId`
+  - `bus_id` → `busId`
+  - `bus_number` → `busNumber`
+  - `route_name` → `routeName`
+  - `driver_name` → `driverName`
+  - `start_time` → `startTime`
+  - `end_time` → `endTime`
+  - `created_at` → `createdAt`
+
+### 6. Data Display Issues Resolved
 - **Status**: ✅ COMPLETE
 - **Previous Issue**: Dashboard showing hardcoded values instead of real data
-- **Current Status**: Backend returns real data (5 buses, 3 routes, 3 drivers)
-- **Frontend Status**: JavaScript errors fixed, should now display real data correctly
+- **Current Status**: Backend returns real data (5 buses, 3 routes, 3 drivers, 13+ schedules)
+- **Frontend Status**: JavaScript errors fixed, field mapping added, should now display real data correctly
 
 ## 🔧 TECHNICAL FIXES APPLIED
 
