@@ -34,9 +34,12 @@ if (!fs.existsSync(DATA_DIR)) {
 
 // Default data
 const defaultData = {
+  admins: [
+    { id: 'ADM001', username: 'admin', password: 'admin123', name: 'System Admin', email: 'admin@nxtbus.com', status: 'active', createdAt: '2024-01-01' }
+  ],
   owners: [
-    { id: 'OWN001', name: 'Sharma Transport', email: 'sharma@transport.com', phone: '9876500001', address: 'Bangalore', status: 'active', createdAt: '2024-01-01' },
-    { id: 'OWN002', name: 'Patel Bus Services', email: 'patel@busservices.com', phone: '9876500002', address: 'Mangalore', status: 'active', createdAt: '2024-01-10' }
+    { id: 'OWN001', name: 'Sharma Transport', email: 'sharma@transport.com', phone: '9876500001', pin: '1234', address: 'Bangalore', status: 'active', createdAt: '2024-01-01' },
+    { id: 'OWN002', name: 'Patel Bus Services', email: 'patel@busservices.com', phone: '9876500002', pin: '5678', address: 'Mangalore', status: 'active', createdAt: '2024-01-10' }
   ],
   buses: [
     { id: 'BUS001', number: '101A', type: 'AC', capacity: 40, status: 'active', ownerId: 'OWN001', assignedDrivers: ['DRV001', 'DRV003'], assignedRoutes: [], createdAt: '2024-01-15' },

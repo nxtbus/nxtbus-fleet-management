@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NxtBus Complete System Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { 
+            color: #333; 
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-section h3 {
+            color: #555;
+            margin: 15px 0 10px 0;
+            font-size: 18px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460; 
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status-pass { background: #28a745; color: white; }
+        .status-fail { background: #dc3545; color: white; }
+        .status-pending { background: #ffc107; color: #333; }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .summary h2 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚌 NxtBus Complete System Test</h1>
+        <p class="subtitle">Comprehensive testing of all authentication and CRUD operations</p>
+
+        <div class="summary" id="summary">
+            <h2>Test Summary</h2>
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTests">0</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="passedTests">0</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="failedTests">0</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="successRate">0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication Tests -->
+        <div class="test-section">
+            <h2>🔐 Authentication Tests</h2>
+            
+            <h3>Admin Login</h3>
+            <div class="button-group">
+                <button onclick="testAdminLogin()">Test Admin Login</button>
+            </div>
+            <div id="adminLoginResult"></div>
+
+            <h3>Owner Login</h3>
+            <div class="button-group">
+                <button onclick="testOwnerLogin()">Test Owner Login</button>
+            </div>
+            <div id="ownerLoginResult"></div>
+
+            <h3>Driver Login</h3>
+            <div class="button-group">
+                <button onclick="testDriverLogin()">Test Driver Login</button>
+            </div>
+            <div id="driverLoginResult"></div>
+        </div>
+
+        <!-- CRUD Tests -->
+        <div class="test-section">
+            <h2>📝 CRUD Operations Tests</h2>
+            
+            <h3>Buses CRUD</h3>
+            <div class="button-group">
+                <button onclick="testBusesCRUD()">Test All Bus Operations</button>
+                <button onclick="testBusCreate()">Create</button>
+                <button onclick="testBusRead()">Read</button>
+                <button onclick="testBusUpdate()">Update</button>
+                <button onclick="testBusDelete()">Delete</button>
+            </div>
+            <div id="busesResult"></div>
+
+            <h3>Routes CRUD</h3>
+            <div class="button-group">
+                <button onclick="testRoutesCRUD()">Test All Route Operations</button>
+                <button onclick="testRouteCreate()">Create</button>
+                <button onclick="testRouteRead()">Read</button>
+                <button onclick="testRouteUpdate()">Update</button>
+                <button onclick="testRouteDelete()">Delete</button>
+            </div>
+            <div id="routesResult"></div>
+
+            <h3>Drivers CRUD</h3>
+            <div class="button-group">
+                <button onclick="testDriversCRUD()">Test All Driver Operations</button>
+                <button onclick="testDriverCreate()">Create</button>
+                <button onclick="testDriverRead()">Read</button>
+                <button onclick="testDriverUpdate()">Update</button>
+                <button onclick="testDriverDelete()">Delete</button>
+            </div>
+            <div id="driversResult"></div>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="test-section">
+            <h2>🚀 Run All Tests</h2>
+            <button onclick="runAllTests()" style="font-size: 16px; padding: 15px 30px;">
+                Run Complete Test Suite
+            </button>
+            <div id="allTestsResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = testResults.total;
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+            const rate = testResults.total > 0 
+                ? Math.round((testResults.passed / testResults.total) * 100) 
+                : 0;
+            document.getElementById('successRate').textContent = rate + '%';
+        }
+
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            const className = success ? 'success' : 'error';
+            const badge = success 
+                ? '<span class="status-badge status-pass">PASS</span>' 
+                : '<span class="status-badge status-fail">FAIL</span>';
+            
+            testResults.total++;
+            if (success) testResults.passed++;
+            else testResults.failed++;
+            updateSummary();
+
+            let content = `${badge}\n${message}`;
+            if (data) {
+                content += '\n\nResponse:\n' + JSON.stringify(data, null, 2);
+            }
+            element.innerHTML = `<div class="result ${className}">${content}</div>`;
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                const data = await response.json();
+                return { success: response.ok, status: response.status, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // ============ AUTHENTICATION TESTS ============
+
+        async function testAdminLogin() {
+            const result = await apiCall('/auth/admin/login', {
+                method: 'POST',
+                body: JSON.stringify({ username: 'admin', password: 'admin123' })
+            });
+            
+            if (result.success && result.data.success) {
+                showResult('adminLoginResult', true, 
+                    '✅ Admin login successful', result.data);
+            } else {
+                showResult('adminLoginResult', false, 
+                    '❌ Admin login failed', result.data || result.error);
+            }
+        }
+
+        async function testOwnerLogin() {
+            const result = await apiCall('/auth/owner/login', {
+                method: 'POST',
+                body: JSON.stringify({ phone: '9876500001', pin: '1234' })
+            });
+            
+            if (result.success && result.data.success) {
+                showResult('ownerLoginResult', true, 
+                    '✅ Owner login successful', result.data);
+            } else {
+                showResult('ownerLoginResult', false, 
+                    '❌ Owner login failed', result.data || result.error);
+            }
+        }
+
+        async function testDriverLogin() {
+            const result = await apiCall('/auth/driver/login', {
+                method: 'POST',
+                body: JSON.stringify({ phone: '9876543210', pin: '1234' })
+            });
+            
+            if (result.success && result.data.success) {
+                showResult('driverLoginResult', true, 
+                    '✅ Driver login successful', result.data);
+            } else {
+                showResult('driverLoginResult', false, 
+                    '❌ Driver login failed', result.data || result.error);
+            }
+        }
+
+        // ============ BUS CRUD TESTS ============
+
+        let testBusId = null;
+
+        async function testBusCreate() {
+            const newBus = {
+                number: 'TEST' + Date.now(),
+                type: 'AC',
+                capacity: 40,
+                status: 'active',
+                ownerId: 'OWN001',
+                assignedDrivers: [],
+                assignedRoutes: []
+            };
+
+            const result = await apiCall('/admin/buses', {
+                method: 'POST',
+                body: JSON.stringify(newBus)
+            });
+
+            if (result.success) {
+                testBusId = result.data.id;
+                showResult('busesResult', true, 
+                    '✅ Bus created successfully', result.data);
+            } else {
+                showResult('busesResult', false, 
+                    '❌ Bus creation failed', result.data || result.error);
+            }
+        }
+
+        async function testBusRead() {
+            const result = await apiCall('/admin/buses');
+            
+            if (result.success && Array.isArray(result.data)) {
+                showResult('busesResult', true, 
+                    `✅ Retrieved ${result.data.length} buses`, 
+                    result.data.slice(0, 3));
+            } else {
+                showResult('busesResult', false, 
+                    '❌ Bus read failed', result.data || result.error);
+            }
+        }
+
+        async function testBusUpdate() {
+            if (!testBusId) {
+                await testBusCreate();
+            }
+
+            const updates = { status: 'maintenance', capacity: 45 };
+            const result = await apiCall(`/admin/buses/${testBusId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
+            });
+
+            if (result.success) {
+                showResult('busesResult', true, 
+                    '✅ Bus updated successfully', result.data);
+            } else {
+                showResult('busesResult', false, 
+                    '❌ Bus update failed', result.data || result.error);
+            }
+        }
+
+        async function testBusDelete() {
+            if (!testBusId) {
+                await testBusCreate();
+            }
+
+            const result = await apiCall(`/admin/buses/${testBusId}`, {
+                method: 'DELETE'
+            });
+
+            if (result.success) {
+                showResult('busesResult', true, 
+                    '✅ Bus deleted successfully', result.data);
+                testBusId = null;
+            } else {
+                showResult('busesResult', false, 
+                    '❌ Bus deletion failed', result.data || result.error);
+            }
+        }
+
+        async function testBusesCRUD() {
+            await testBusCreate();
+            await new Promise(r => setTimeout(r, 500));
+            await testBusRead();
+            await new Promise(r => setTimeout(r, 500));
+            await testBusUpdate();
+            await new Promise(r => setTimeout(r, 500));
+            await testBusDelete();
+        }
+
+        // ============ ROUTE CRUD TESTS ============
+
+        let testRouteId = null;
+
+        async function testRouteCreate() {
+            const newRoute = {
+                name: 'Test Route ' + Date.now(),
+                startPoint: 'Test Start',
+                endPoint: 'Test End',
+                startLat: 12.9716,
+                startLon: 77.5946,
+                endLat: 13.0200,
+                endLon: 77.6400,
+                estimatedDuration: 60,
+                status: 'active',
+                stops: []
+            };
+
+            const result = await apiCall('/admin/routes', {
+                method: 'POST',
+                body: JSON.stringify(newRoute)
+            });
+
+            if (result.success) {
+                testRouteId = result.data.id;
+                showResult('routesResult', true, 
+                    '✅ Route created successfully', result.data);
+            } else {
+                showResult('routesResult', false, 
+                    '❌ Route creation failed', result.data || result.error);
+            }
+        }
+
+        async function testRouteRead() {
+            const result = await apiCall('/admin/routes');
+            
+            if (result.success && Array.isArray(result.data)) {
+                showResult('routesResult', true, 
+                    `✅ Retrieved ${result.data.length} routes`, 
+                    result.data.slice(0, 2));
+            } else {
+                showResult('routesResult', false, 
+                    '❌ Route read failed', result.data || result.error);
+            }
+        }
+
+        async function testRouteUpdate() {
+            if (!testRouteId) {
+                await testRouteCreate();
+            }
+
+            const updates = { status: 'inactive', estimatedDuration: 75 };
+            const result = await apiCall(`/admin/routes/${testRouteId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
+            });
+
+            if (result.success) {
+                showResult('routesResult', true, 
+                    '✅ Route updated successfully', result.data);
+            } else {
+                showResult('routesResult', false, 
+                    '❌ Route update failed', result.data || result.error);
+            }
+        }
+
+        async function testRouteDelete() {
+            if (!testRouteId) {
+                await testRouteCreate();
+            }
+
+            const result = await apiCall(`/admin/routes/${testRouteId}`, {
+                method: 'DELETE'
+            });
+
+            if (result.success) {
+                showResult('routesResult', true, 
+                    '✅ Route deleted successfully', result.data);
+                testRouteId = null;
+            } else {
+                showResult('routesResult', false, 
+                    '❌ Route deletion failed', result.data || result.error);
+            }
+        }
+
+        async function testRoutesCRUD() {
+            await testRouteCreate();
+            await new Promise(r => setTimeout(r, 500));
+            await testRouteRead();
+            await new Promise(r => setTimeout(r, 500));
+            await testRouteUpdate();
+            await new Promise(r => setTimeout(r, 500));
+            await testRouteDelete();
+        }
+
+        // ============ DRIVER CRUD TESTS ============
+
+        let testDriverId = null;
+
+        async function testDriverCreate() {
+            const newDriver = {
+                name: 'Test Driver ' + Date.now(),
+                phone: '98765' + Math.floor(Math.random() * 100000),
+                pin: '9999',
+                status: 'active',
+                assignedBuses: []
+            };
+
+            const result = await apiCall('/admin/drivers', {
+                method: 'POST',
+                body: JSON.stringify(newDriver)
+            });
+
+            if (result.success) {
+                testDriverId = result.data.id;
+                showResult('driversResult', true, 
+                    '✅ Driver created successfully', result.data);
+            } else {
+                showResult('driversResult', false, 
+                    '❌ Driver creation failed', result.data || result.error);
+            }
+        }
+
+        async function testDriverRead() {
+            const result = await apiCall('/admin/drivers');
+            
+            if (result.success && Array.isArray(result.data)) {
+                showResult('driversResult', true, 
+                    `✅ Retrieved ${result.data.length} drivers`, 
+                    result.data.slice(0, 3));
+            } else {
+                showResult('driversResult', false, 
+                    '❌ Driver read failed', result.data || result.error);
+            }
+        }
+
+        async function testDriverUpdate() {
+            if (!testDriverId) {
+                await testDriverCreate();
+            }
+
+            const updates = { status: 'inactive', name: 'Updated Test Driver' };
+            const result = await apiCall(`/admin/drivers/${testDriverId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
+            });
+
+            if (result.success) {
+                showResult('driversResult', true, 
+                    '✅ Driver updated successfully', result.data);
+            } else {
+                showResult('driversResult', false, 
+                    '❌ Driver update failed', result.data || result.error);
+            }
+        }
+
+        async function testDriverDelete() {
+            if (!testDriverId) {
+                await testDriverCreate();
+            }
+
+            const result = await apiCall(`/admin/drivers/${testDriverId}`, {
+                method: 'DELETE'
+            });
+
+            if (result.success) {
+                showResult('driversResult', true, 
+                    '✅ Driver deleted successfully', result.data);
+                testDriverId = null;
+            } else {
+                showResult('driversResult', false, 
+                    '❌ Driver deletion failed', result.data || result.error);
+            }
+        }
+
+        async function testDriversCRUD() {
+            await testDriverCreate();
+            await new Promise(r => setTimeout(r, 500));
+            await testDriverRead();
+            await new Promise(r => setTimeout(r, 500));
+            await testDriverUpdate();
+            await new Promise(r => setTimeout(r, 500));
+            await testDriverDelete();
+        }
+
+        // ============ RUN ALL TESTS ============
+
+        async function runAllTests() {
+            testResults = { total: 0, passed: 0, failed: 0 };
+            updateSummary();
+            
+            const startTime = Date.now();
+            document.getElementById('allTestsResult').innerHTML = 
+                '<div class="result info">🔄 Running all tests... Please wait...</div>';
+
+            try {
+                // Authentication Tests
+                await testAdminLogin();
+                await new Promise(r => setTimeout(r, 300));
+                await testOwnerLogin();
+                await new Promise(r => setTimeout(r, 300));
+                await testDriverLogin();
+                await new Promise(r => setTimeout(r, 500));
+
+                // CRUD Tests
+                await testBusesCRUD();
+                await new Promise(r => setTimeout(r, 500));
+                await testRoutesCRUD();
+                await new Promise(r => setTimeout(r, 500));
+                await testDriversCRUD();
+
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                const successRate = Math.round((testResults.passed / testResults.total) * 100);
+                
+                document.getElementById('allTestsResult').innerHTML = 
+                    `<div class="result success">
+                        ✅ All tests completed in ${duration}s
+                        
+                        Results:
+                        - Total: ${testResults.total}
+                        - Passed: ${testResults.passed}
+                        - Failed: ${testResults.failed}
+                        - Success Rate: ${successRate}%
+                    </div>`;
+            } catch (error) {
+                document.getElementById('allTestsResult').innerHTML = 
+                    `<div class="result error">❌ Test suite failed: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize
+        updateSummary();
+    </script>
+</body>
+</html>
