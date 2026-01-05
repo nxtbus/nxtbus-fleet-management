@@ -131,12 +131,15 @@ async function testCreate(moduleName, endpoint, needsAuth) {
   }
 }
 
-async function testRead(moduleName, endpoint, needsAuth) {
+async function testRead(moduleName, endpoint, needsAuth, readEndpoint) {
   testResults.total++;
   log(`🧪 Testing READ for ${moduleName}...`, 'yellow');
   
+  // Use readEndpoint if provided (for Owners which has different read endpoint)
+  const actualEndpoint = readEndpoint || endpoint;
+  
   try {
-    const response = await fetch(`${API_BASE}/${endpoint}`, {
+    const response = await fetch(`${API_BASE}/${actualEndpoint}`, {
       headers: getHeaders(needsAuth)
     });
     
@@ -169,7 +172,36 @@ async function testUpdate(moduleName, endpoint, needsAuth) {
   }
   
   try {
-    const updateData = { status: 'inactive' };
+    // Use appropriate update data based on module
+    let updateData = { status: 'inactive' };
+    
+    // Some modules need specific fields for validation
+    if (moduleName === 'Routes') {
+      updateData = {
+        name: 'Updated Test Route',
+        startPoint: 'Point A',
+        endPoint: 'Point B',
+        startLat: 12.9716,
+        startLon: 77.5946,
+        endLat: 13.0827,
+        endLon: 80.2707,
+        estimatedDuration: 60,
+        status: 'inactive'
+      };
+    } else if (moduleName === 'Drivers') {
+      updateData = {
+        name: 'Updated Test Driver',
+        phone: '9876543210',
+        pin: '1234',
+        status: 'inactive'
+      };
+    } else if (moduleName === 'Call Alerts') {
+      updateData = {
+        acknowledged: true,
+        status: 'inactive'
+      };
+    }
+    
     const response = await fetch(`${API_BASE}/${endpoint}/${id}`, {
       method: 'PUT',
       headers: getHeaders(needsAuth),
@@ -228,14 +260,14 @@ async function testDelete(moduleName, endpoint, needsAuth) {
   }
 }
 
-async function testModule(name, endpoint, needsAuth) {
+async function testModule(name, endpoint, needsAuth, readEndpoint) {
   log(`\n${'='.repeat(60)}`, 'cyan');
   log(`📦 Testing ${name} Module`, 'cyan');
   log('='.repeat(60), 'cyan');
   
   await testCreate(name, endpoint, needsAuth);
   await new Promise(resolve => setTimeout(resolve, 500));
-  await testRead(name, endpoint, needsAuth);
+  await testRead(name, endpoint, needsAuth, readEndpoint);
   await new Promise(resolve => setTimeout(resolve, 500));
   await testUpdate(name, endpoint, needsAuth);
   await new Promise(resolve => setTimeout(resolve, 500));
@@ -256,7 +288,7 @@ async function runAllTests() {
   
   // Test all modules
   const modules = [
-    { name: 'Owners', endpoint: 'admin/owners', hasAuth: true },
+    { name: 'Owners', endpoint: 'admin/owners', readEndpoint: 'owners', hasAuth: true },
     { name: 'Buses', endpoint: 'admin/buses', hasAuth: true },
     { name: 'Routes', endpoint: 'admin/routes', hasAuth: true },
     { name: 'Drivers', endpoint: 'admin/drivers', hasAuth: true },
@@ -267,7 +299,7 @@ async function runAllTests() {
   ];
   
   for (const module of modules) {
-    await testModule(module.name, module.endpoint, module.hasAuth);
+    await testModule(module.name, module.endpoint, module.hasAuth, module.readEndpoint);
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
