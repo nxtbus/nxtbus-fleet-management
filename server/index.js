@@ -890,10 +890,18 @@ app.post('/api/admin/buses',
   validateBus,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
+    // Generate ID if not provided
+    const buses = await db.getBuses();
+    const busId = req.body.id || `BUS${String(buses.length + 1).padStart(3, '0')}`;
+    
     const newBus = {
+      id: busId,
       number: req.body.number,
       type: req.body.type,
+      model: req.body.model,
+      year: req.body.year,
       capacity: req.body.capacity,
+      fuel_type: req.body.fuelType,
       status: req.body.status || 'active',
       owner_id: req.body.ownerId,
       assigned_drivers: req.body.assignedDrivers || [],
@@ -970,7 +978,12 @@ app.post('/api/admin/routes',
   validateRoute,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
+    // Generate ID if not provided
+    const routes = await db.getRoutes();
+    const routeId = req.body.id || `ROUTE${String(routes.length + 1).padStart(3, '0')}`;
+    
     const newRoute = {
+      id: routeId,
       name: req.body.name,
       start_point: req.body.startPoint,
       end_point: req.body.endPoint,
@@ -979,6 +992,8 @@ app.post('/api/admin/routes',
       end_lat: req.body.endLat,
       end_lon: req.body.endLon,
       estimated_duration: req.body.estimatedDuration,
+      distance: req.body.distance,
+      fare: req.body.fare,
       status: 'active',
       stops: req.body.stops || []
     };
@@ -1060,10 +1075,17 @@ app.post('/api/admin/drivers',
   asyncHandler(async (req, res) => {
     const bcrypt = require('bcryptjs');
     
+    // Generate ID if not provided
+    const drivers = await db.getDrivers();
+    const driverId = req.body.id || `DRV${String(drivers.length + 1).padStart(3, '0')}`;
+    
     const newDriver = {
+      id: driverId,
       name: req.body.name,
       phone: req.body.phone,
       password: await bcrypt.hash(req.body.pin, 10),
+      license_number: req.body.licenseNumber,
+      experience_years: req.body.experienceYears || 0,
       status: req.body.status || 'active',
       assigned_buses: req.body.assignedBuses || []
     };
@@ -1140,14 +1162,16 @@ app.post('/api/admin/owners',
     const bcrypt = require('bcryptjs');
     
     const owners = await getOwners();
+    const ownerId = req.body.id || `OWN${String(owners.length + 1).padStart(3, '0')}`;
+    
     const newOwner = {
-      id: `OWN${String(owners.length + 1).padStart(3, '0')}`,
+      id: ownerId,
       name: req.body.name,
       email: req.body.email,
       phone: req.body.phone,
       password: await bcrypt.hash(req.body.pin, 10),
-      company_name: req.body.name,
-      license_number: 'N/A',
+      company_name: req.body.companyName || req.body.name,
+      license_number: req.body.licenseNumber || 'N/A',
       address: req.body.address,
       status: 'active'
     };
@@ -1197,8 +1221,14 @@ app.get('/api/admin/delays',
 
 app.post('/api/admin/delays',
   asyncHandler(async (req, res) => {
+    // Generate ID if not provided
+    const delays = await db.getDelays();
+    const delayId = req.body.id || `DEL${String(delays.length + 1).padStart(3, '0')}`;
+    
     const newDelay = {
+      id: delayId,
       bus_id: req.body.busId,
+      bus_number: req.body.busNumber,
       route_id: req.body.routeId,
       delay_minutes: req.body.delayMinutes,
       reason: req.body.reason,
@@ -1324,7 +1354,12 @@ app.post('/api/admin/notifications',
   validateNotification,
   validationErrorHandler,
   asyncHandler(async (req, res) => {
+    // Generate ID if not provided
+    const notifications = await db.getNotifications();
+    const notificationId = req.body.id || `NOT${String(notifications.length + 1).padStart(3, '0')}`;
+    
     const newNotification = {
+      id: notificationId,
       title: req.body.title,
       message: req.body.message,
       type: req.body.type,
@@ -1378,7 +1413,12 @@ app.get('/api/callAlerts',
 
 app.post('/api/callAlerts',
   asyncHandler(async (req, res) => {
+    // Generate ID if not provided
+    const callAlerts = await db.getCallAlerts();
+    const alertId = req.body.id || `CALL${String(callAlerts.length + 1).padStart(3, '0')}`;
+    
     const newAlert = {
+      id: alertId,
       trip_id: req.body.tripId,
       bus_id: req.body.busId,
       bus_number: req.body.busNumber,
@@ -1390,6 +1430,9 @@ app.post('/api/callAlerts',
       owner_id: req.body.ownerId,
       call_type: req.body.callType,
       call_status: req.body.callStatus,
+      alert_type: req.body.alertType,
+      message: req.body.message,
+      priority: req.body.priority || 'medium',
       timestamp: req.body.timestamp || new Date().toISOString(),
       location: req.body.location,
       status: 'active',

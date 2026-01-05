@@ -207,14 +207,57 @@ class DatabaseService {
   }
 
   async addBus(busData) {
-    const { id, number, model, year, capacity, fuel_type, owner_id, status = 'active' } = busData;
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addBus');
+      
+      // Generate ID if not provided
+      const busId = busData.id || `BUS${String(fallbackData.buses.length + 1).padStart(3, '0')}`;
+      
+      const newBus = {
+        id: busId,
+        number: busData.number,
+        model: busData.model,
+        year: busData.year,
+        type: busData.type,
+        capacity: busData.capacity,
+        fuelType: busData.fuel_type,
+        ownerId: busData.owner_id,
+        status: busData.status || 'active',
+        assignedDrivers: busData.assigned_drivers || [],
+        assignedRoutes: busData.assigned_routes || [],
+        createdAt: new Date().toISOString()
+      };
+      
+      fallbackData.buses.push(newBus);
+      return newBus;
+    }
+    
+    const { id, number, model, year, capacity, fuel_type, owner_id, type, status = 'active', assigned_drivers = [], assigned_routes = [] } = busData;
     const result = await this.query(
-      `INSERT INTO buses (id, number, model, year, capacity, fuel_type, owner_id, status, created_at, updated_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+      `INSERT INTO buses (id, number, model, year, capacity, fuel_type, owner_id, type, status, assigned_drivers, assigned_routes, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
        RETURNING *`,
-      [id, number, model, year, capacity, fuel_type, owner_id, status]
+      [id, number, model, year, capacity, fuel_type, owner_id, type, status, JSON.stringify(assigned_drivers), JSON.stringify(assigned_routes)]
     );
-    return result.rows[0];
+    
+    // Map database fields back to camelCase
+    const bus = result.rows[0];
+    return {
+      id: bus.id,
+      number: bus.number,
+      model: bus.model,
+      year: bus.year,
+      capacity: bus.capacity,
+      fuelType: bus.fuel_type,
+      ownerId: bus.owner_id,
+      type: bus.type,
+      status: bus.status,
+      assignedDrivers: bus.assigned_drivers || [],
+      assignedRoutes: bus.assigned_routes || [],
+      createdAt: bus.created_at,
+      updatedAt: bus.updated_at
+    };
   }
 
   async updateBus(id, updates) {
@@ -297,6 +340,33 @@ class DatabaseService {
   }
 
   async addRoute(routeData) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addRoute');
+      
+      const routeId = routeData.id || `ROUTE${String(fallbackData.routes.length + 1).padStart(3, '0')}`;
+      
+      const newRoute = {
+        id: routeId,
+        name: routeData.name,
+        startPoint: routeData.start_point,
+        endPoint: routeData.end_point,
+        startLat: routeData.start_lat,
+        startLon: routeData.start_lon,
+        endLat: routeData.end_lat,
+        endLon: routeData.end_lon,
+        estimatedDuration: routeData.estimated_duration,
+        distance: routeData.distance,
+        fare: routeData.fare,
+        stops: routeData.stops || [],
+        status: routeData.status || 'active',
+        createdAt: new Date().toISOString()
+      };
+      
+      fallbackData.routes.push(newRoute);
+      return newRoute;
+    }
+    
     const { 
       id, name, start_point, end_point, start_lat, start_lon, 
       end_lat, end_lon, estimated_duration, distance, fare, stops, status = 'active' 
@@ -310,7 +380,25 @@ class DatabaseService {
       [id, name, start_point, end_point, start_lat, start_lon, end_lat, end_lon, 
        estimated_duration, distance, fare, JSON.stringify(stops), status]
     );
-    return result.rows[0];
+    
+    // Map database fields back to camelCase
+    const route = result.rows[0];
+    return {
+      id: route.id,
+      name: route.name,
+      startPoint: route.start_point,
+      endPoint: route.end_point,
+      startLat: route.start_lat,
+      startLon: route.start_lon,
+      endLat: route.end_lat,
+      endLon: route.end_lon,
+      estimatedDuration: route.estimated_duration,
+      distance: route.distance,
+      fare: route.fare,
+      stops: route.stops || [],
+      status: route.status,
+      createdAt: route.created_at
+    };
   }
 
   async updateRoute(id, updates) {
@@ -444,6 +532,30 @@ class DatabaseService {
   }
 
   async addSchedule(scheduleData) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addSchedule');
+      
+      const scheduleId = scheduleData.id || `SCH${String(fallbackData.schedules.length + 1).padStart(3, '0')}`;
+      
+      const newSchedule = {
+        id: scheduleId,
+        busId: scheduleData.bus_id,
+        routeId: scheduleData.route_id,
+        busNumber: scheduleData.bus_number,
+        routeName: scheduleData.route_name,
+        driverName: scheduleData.driver_name,
+        startTime: scheduleData.start_time,
+        endTime: scheduleData.end_time,
+        days: scheduleData.days,
+        status: scheduleData.status || 'active',
+        createdAt: new Date().toISOString()
+      };
+      
+      fallbackData.schedules.push(newSchedule);
+      return newSchedule;
+    }
+    
     const { id, bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status = 'active' } = scheduleData;
     
     const result = await this.query(
@@ -517,6 +629,28 @@ class DatabaseService {
   }
 
   async addNotification(notificationData) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addNotification');
+      
+      const notificationId = notificationData.id || `NOT${String(fallbackData.notifications.length + 1).padStart(3, '0')}`;
+      
+      const newNotification = {
+        id: notificationId,
+        title: notificationData.title,
+        message: notificationData.message,
+        type: notificationData.type,
+        priority: notificationData.priority || 'medium',
+        targetAudience: notificationData.target_audience,
+        expiresAt: notificationData.expires_at,
+        status: notificationData.status || 'active',
+        sentAt: new Date().toISOString()
+      };
+      
+      fallbackData.notifications.push(newNotification);
+      return newNotification;
+    }
+    
     const { id, title, message, type, priority = 'medium', target_audience, expires_at, status = 'active' } = notificationData;
     
     const result = await this.query(
@@ -524,7 +658,20 @@ class DatabaseService {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) RETURNING *`,
       [id, title, message, type, priority, target_audience, expires_at, status]
     );
-    return result.rows[0];
+    
+    // Map database fields back to camelCase
+    const notification = result.rows[0];
+    return {
+      id: notification.id,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type,
+      priority: notification.priority,
+      targetAudience: notification.target_audience,
+      expiresAt: notification.expires_at,
+      status: notification.status,
+      sentAt: notification.sent_at
+    };
   }
 
   async updateNotification(id, updates) {
@@ -604,6 +751,27 @@ class DatabaseService {
   }
 
   async addDelay(delayData) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addDelay');
+      
+      const delayId = delayData.id || `DEL${String(fallbackData.delays.length + 1).padStart(3, '0')}`;
+      
+      const newDelay = {
+        id: delayId,
+        busId: delayData.bus_id,
+        busNumber: delayData.bus_number,
+        routeId: delayData.route_id,
+        delayMinutes: delayData.delay_minutes,
+        reason: delayData.reason,
+        status: delayData.status || 'active',
+        reportedAt: new Date().toISOString()
+      };
+      
+      fallbackData.delays.push(newDelay);
+      return newDelay;
+    }
+    
     const { id, bus_id, bus_number, route_id, delay_minutes, reason, status = 'active' } = delayData;
     
     const result = await this.query(
@@ -611,7 +779,19 @@ class DatabaseService {
        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) RETURNING *`,
       [id, bus_id, bus_number, route_id, delay_minutes, reason, status]
     );
-    return result.rows[0];
+    
+    // Map database fields back to camelCase
+    const delay = result.rows[0];
+    return {
+      id: delay.id,
+      busId: delay.bus_id,
+      busNumber: delay.bus_number,
+      routeId: delay.route_id,
+      delayMinutes: delay.delay_minutes,
+      reason: delay.reason,
+      status: delay.status,
+      reportedAt: delay.reported_at
+    };
   }
 
   async updateDelay(id, updates) {
@@ -653,14 +833,69 @@ class DatabaseService {
   }
 
   async addCallAlert(alertData) {
-    const { id, driver_id, driver_name, bus_number, alert_type, message, priority = 'medium', status = 'active' } = alertData;
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addCallAlert');
+      
+      const alertId = alertData.id || `CALL${String(fallbackData.callAlerts.length + 1).padStart(3, '0')}`;
+      
+      const newAlert = {
+        id: alertId,
+        tripId: alertData.trip_id,
+        busId: alertData.bus_id,
+        busNumber: alertData.bus_number,
+        driverId: alertData.driver_id,
+        driverName: alertData.driver_name,
+        routeId: alertData.route_id,
+        routeName: alertData.route_name,
+        ownerId: alertData.owner_id,
+        callType: alertData.call_type,
+        callStatus: alertData.call_status,
+        alertType: alertData.alert_type,
+        message: alertData.message,
+        priority: alertData.priority || 'medium',
+        timestamp: alertData.timestamp || new Date().toISOString(),
+        location: alertData.location,
+        status: alertData.status || 'active',
+        acknowledged: alertData.acknowledged || false,
+        createdAt: new Date().toISOString()
+      };
+      
+      fallbackData.callAlerts.push(newAlert);
+      return newAlert;
+    }
+    
+    const { id, driver_id, driver_name, bus_number, alert_type, message, priority = 'medium', status = 'active', trip_id, bus_id, route_id, route_name, owner_id, call_type, call_status, timestamp, location, acknowledged = false } = alertData;
     
     const result = await this.query(
-      `INSERT INTO call_alerts (id, driver_id, driver_name, bus_number, alert_type, message, priority, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) RETURNING *`,
-      [id, driver_id, driver_name, bus_number, alert_type, message, priority, status]
+      `INSERT INTO call_alerts (id, trip_id, bus_id, bus_number, driver_id, driver_name, route_id, route_name, owner_id, call_type, call_status, alert_type, message, priority, timestamp, location, status, acknowledged, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP) RETURNING *`,
+      [id, trip_id, bus_id, bus_number, driver_id, driver_name, route_id, route_name, owner_id, call_type, call_status, alert_type, message, priority, timestamp, JSON.stringify(location), status, acknowledged]
     );
-    return result.rows[0];
+    
+    // Map database fields back to camelCase
+    const alert = result.rows[0];
+    return {
+      id: alert.id,
+      tripId: alert.trip_id,
+      busId: alert.bus_id,
+      busNumber: alert.bus_number,
+      driverId: alert.driver_id,
+      driverName: alert.driver_name,
+      routeId: alert.route_id,
+      routeName: alert.route_name,
+      ownerId: alert.owner_id,
+      callType: alert.call_type,
+      callStatus: alert.call_status,
+      alertType: alert.alert_type,
+      message: alert.message,
+      priority: alert.priority,
+      timestamp: alert.timestamp,
+      location: alert.location,
+      status: alert.status,
+      acknowledged: alert.acknowledged,
+      createdAt: alert.created_at
+    };
   }
 
   async updateCallAlert(id, updates) {
@@ -697,6 +932,29 @@ class DatabaseService {
   }
 
   async addOwner(ownerData) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addOwner');
+      
+      const ownerId = ownerData.id || `OWN${String(fallbackData.owners.length + 1).padStart(3, '0')}`;
+      
+      const newOwner = {
+        id: ownerId,
+        name: ownerData.name,
+        email: ownerData.email,
+        phone: ownerData.phone,
+        password: ownerData.password,
+        companyName: ownerData.company_name,
+        licenseNumber: ownerData.license_number,
+        address: ownerData.address,
+        status: ownerData.status || 'active',
+        createdAt: new Date().toISOString()
+      };
+      
+      fallbackData.owners.push(newOwner);
+      return newOwner;
+    }
+    
     const { id, name, email, phone, password, company_name, license_number, address, status = 'active' } = ownerData;
     const result = await this.query(
       `INSERT INTO owners (id, name, email, phone, password, company_name, license_number, address, status, created_at, updated_at) 
@@ -784,14 +1042,50 @@ class DatabaseService {
   }
 
   async addDriver(driverData) {
-    const { id, name, phone, password, license_number, experience_years, status = 'active' } = driverData;
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for addDriver');
+      
+      const driverId = driverData.id || `DRV${String(fallbackData.drivers.length + 1).padStart(3, '0')}`;
+      
+      const newDriver = {
+        id: driverId,
+        name: driverData.name,
+        phone: driverData.phone,
+        password: driverData.password,
+        licenseNumber: driverData.license_number,
+        experienceYears: driverData.experience_years || 0,
+        status: driverData.status || 'active',
+        assignedBuses: driverData.assigned_buses || [],
+        createdAt: new Date().toISOString()
+      };
+      
+      fallbackData.drivers.push(newDriver);
+      return newDriver;
+    }
+    
+    const { id, name, phone, password, license_number, experience_years, status = 'active', assigned_buses = [] } = driverData;
     const result = await this.query(
-      `INSERT INTO drivers (id, name, phone, password, license_number, experience_years, status, created_at, updated_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+      `INSERT INTO drivers (id, name, phone, password, license_number, experience_years, status, assigned_buses, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
        RETURNING *`,
-      [id, name, phone, password, license_number, experience_years, status]
+      [id, name, phone, password, license_number, experience_years, status, JSON.stringify(assigned_buses)]
     );
-    return result.rows[0];
+    
+    // Map database fields back to camelCase
+    const driver = result.rows[0];
+    return {
+      id: driver.id,
+      name: driver.name,
+      phone: driver.phone,
+      password: driver.password,
+      licenseNumber: driver.license_number,
+      experienceYears: driver.experience_years,
+      status: driver.status,
+      assignedBuses: driver.assigned_buses || [],
+      createdAt: driver.created_at,
+      updatedAt: driver.updated_at
+    };
   }
 
   async updateDriver(id, updates) {
