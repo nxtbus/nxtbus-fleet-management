@@ -158,6 +158,58 @@ app.post('/api/auth/admin/login', (req, res) => {
   res.json({ success: true, admin: adminData });
 });
 
+// Driver login with phone and PIN
+app.post('/api/auth/driver/login', (req, res) => {
+  const { phone, pin } = req.body;
+  const drivers = readData('drivers');
+  
+  const driver = drivers.find(d => d.phone === phone && d.pin === pin);
+  
+  if (!driver) {
+    res.status(401).json({ success: false, message: 'Invalid phone number or PIN' });
+    return;
+  }
+  
+  if (driver.status !== 'active') {
+    res.status(401).json({ success: false, message: 'Account is not active' });
+    return;
+  }
+  
+  // Return driver without PIN
+  const { pin: _, ...driverData } = driver;
+  res.json({ success: true, driver: driverData });
+});
+
+// ============ DRIVER SPECIFIC ENDPOINTS ============
+
+// Start a trip
+app.post('/api/driver/trips/start', (req, res) => {
+  const trips = readData('activeTrips');
+  const newTrip = req.body;
+  
+  // Check if there's already an active trip for this bus
+  const existingTrip = trips.find(t => t.busId === newTrip.busId);
+  if (existingTrip) {
+    res.json(existingTrip);
+    return;
+  }
+  
+  // Generate trip ID if not provided
+  if (!newTrip.id && !newTrip.tripId) {
+    newTrip.tripId = `TRIP_${Date.now()}`;
+  }
+  
+  trips.push(newTrip);
+  writeData('activeTrips', trips);
+  res.status(201).json(newTrip);
+});
+
+// Get active trips
+app.get('/api/trips/active', (req, res) => {
+  const trips = readData('activeTrips');
+  res.json(trips);
+});
+
 // ============ OWNER PORTAL SPECIFIC ENDPOINTS (must be before generic routes) ============
 
 // Helper function to build complete route path with start, stops, and end
