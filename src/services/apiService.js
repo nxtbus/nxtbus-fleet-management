@@ -276,7 +276,7 @@ export async function deleteDriver(id) {
 
 export async function getSchedules() {
   try {
-    return await read('schedules');
+    return await fetchApi('/schedules');
   } catch (error) {
     console.warn('Failed to fetch schedules:', error);
     return [];
