@@ -1116,6 +1116,25 @@ class DatabaseService {
   }
 
   async updateOwner(id, updates) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for updateOwner');
+      
+      const index = fallbackData.owners.findIndex(o => o.id === id);
+      if (index === -1) return null;
+      
+      // Update only provided fields
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+          // Map snake_case to camelCase
+          const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+          fallbackData.owners[index][camelKey] = updates[key];
+        }
+      });
+      
+      return fallbackData.owners[index];
+    }
+    
     // Filter out undefined values
     const filteredUpdates = Object.entries(updates)
       .filter(([key, value]) => value !== undefined)
@@ -1137,6 +1156,17 @@ class DatabaseService {
   }
 
   async deleteOwner(id) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for deleteOwner');
+      
+      const index = fallbackData.owners.findIndex(o => o.id === id);
+      if (index === -1) return null;
+      
+      fallbackData.owners[index].status = 'deleted';
+      return { success: true };
+    }
+    
     await this.query('UPDATE owners SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', ['deleted', id]);
     return { success: true };
   }
