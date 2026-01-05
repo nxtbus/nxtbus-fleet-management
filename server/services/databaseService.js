@@ -426,7 +426,21 @@ class DatabaseService {
     }
     
     const result = await this.query('SELECT * FROM schedules WHERE status = $1 ORDER BY created_at DESC', ['active']);
-    return result.rows;
+    
+    // Map snake_case to camelCase for frontend
+    return result.rows.map(row => ({
+      id: row.id,
+      busId: row.bus_id,
+      routeId: row.route_id,
+      busNumber: row.bus_number,
+      routeName: row.route_name,
+      driverName: row.driver_name,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      days: row.days,
+      status: row.status,
+      createdAt: row.created_at
+    }));
   }
 
   async addSchedule(scheduleData) {
@@ -437,7 +451,22 @@ class DatabaseService {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP) RETURNING *`,
       [id, bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status]
     );
-    return result.rows[0];
+    
+    // Map snake_case to camelCase for frontend
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      busId: row.bus_id,
+      routeId: row.route_id,
+      busNumber: row.bus_number,
+      routeName: row.route_name,
+      driverName: row.driver_name,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      days: row.days,
+      status: row.status,
+      createdAt: row.created_at
+    };
   }
 
   async updateSchedule(id, scheduleData) {
@@ -450,7 +479,24 @@ class DatabaseService {
        WHERE id = $10 RETURNING *`,
       [bus_id, route_id, bus_number, route_name, driver_name, start_time, end_time, days, status, id]
     );
-    return result.rows[0];
+    
+    // Map snake_case to camelCase for frontend
+    const row = result.rows[0];
+    if (!row) return null;
+    
+    return {
+      id: row.id,
+      busId: row.bus_id,
+      routeId: row.route_id,
+      busNumber: row.bus_number,
+      routeName: row.route_name,
+      driverName: row.driver_name,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      days: row.days,
+      status: row.status,
+      createdAt: row.created_at
+    };
   }
 
   async deleteSchedule(id) {
