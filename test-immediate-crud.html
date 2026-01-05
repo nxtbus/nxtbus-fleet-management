@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Immediate CRUD Reaction</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button.delete {
+      background: #f44336;
+    }
+    button.delete:hover {
+      background: #da190b;
+    }
+    button.refresh {
+      background: #2196F3;
+    }
+    button.refresh:hover {
+      background: #0b7dda;
+    }
+    .data-display {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+      min-height: 100px;
+    }
+    .empty-state {
+      color: #999;
+      font-style: italic;
+      text-align: center;
+      padding: 30px;
+    }
+    .item {
+      background: white;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .item-info {
+      flex: 1;
+    }
+    .item-actions {
+      display: flex;
+      gap: 5px;
+    }
+    .item-actions button {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    .status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    .status.active {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .status.deleted {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .log {
+      background: #263238;
+      color: #aed581;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .log-entry {
+      margin: 2px 0;
+    }
+    .log-entry.success {
+      color: #81c784;
+    }
+    .log-entry.error {
+      color: #e57373;
+    }
+    .log-entry.info {
+      color: #64b5f6;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test Immediate CRUD Reaction</h1>
+  
+  <div class="test-section">
+    <h2>Authentication</h2>
+    <div class="button-group">
+      <button onclick="login()">🔐 Login as Admin</button>
+    </div>
+    <div id="auth-status" class="data-display">
+      <div class="empty-state">Not logged in</div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Buses Management</h2>
+    <div class="button-group">
+      <button onclick="loadBuses()" class="refresh">🔄 Refresh Buses</button>
+      <button onclick="createBus()">➕ Create Bus</button>
+      <button onclick="deleteAllBuses()" class="delete">🗑️ Delete All Buses</button>
+    </div>
+    <div id="buses-display" class="data-display">
+      <div class="empty-state">Click "Refresh Buses" to load data</div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Activity Log</h2>
+    <div id="activity-log" class="log">
+      <div class="log-entry info">Ready to test...</div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://nxtbus-backend.onrender.com/api';
+    let adminToken = '';
+    let buses = [];
+
+    function addLog(message, type = 'info') {
+      const log = document.getElementById('activity-log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function login() {
+      try {
+        addLog('Attempting login...', 'info');
+        const response = await fetch(`${API_BASE}/auth/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: 'admin123' })
+        });
+
+        const data = await response.json();
+        
+        if (data.token) {
+          adminToken = data.token;
+          document.getElementById('auth-status').innerHTML = `
+            <div style="color: #2e7d32;">
+              ✅ Logged in as Admin<br>
+              <small>Token: ${adminToken.substring(0, 30)}...</small>
+            </div>
+          `;
+          addLog('Login successful!', 'success');
+        } else {
+          addLog('Login failed: ' + data.message, 'error');
+        }
+      } catch (err) {
+        addLog('Login error: ' + err.message, 'error');
+      }
+    }
+
+    async function loadBuses() {
+      if (!adminToken) {
+        addLog('Please login first!', 'error');
+        return;
+      }
+
+      try {
+        addLog('Loading buses from database...', 'info');
+        const response = await fetch(`${API_BASE}/admin/buses`, {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+
+        buses = await response.json();
+        
+        addLog(`Loaded ${buses.length} buses from database`, 'success');
+        displayBuses();
+      } catch (err) {
+        addLog('Error loading buses: ' + err.message, 'error');
+      }
+    }
+
+    function displayBuses() {
+      const display = document.getElementById('buses-display');
+      
+      if (buses.length === 0) {
+        display.innerHTML = '<div class="empty-state">📭 No buses found in database</div>';
+        return;
+      }
+
+      display.innerHTML = buses.map(bus => `
+        <div class="item">
+          <div class="item-info">
+            <strong>${bus.number}</strong> - ${bus.type}
+            <span class="status ${bus.status}">${bus.status}</span>
+            <br>
+            <small>ID: ${bus.id} | Capacity: ${bus.capacity}</small>
+          </div>
+          <div class="item-actions">
+            <button onclick="deleteBus('${bus.id}')" class="delete">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function createBus() {
+      if (!adminToken) {
+        addLog('Please login first!', 'error');
+        return;
+      }
+
+      try {
+        const busNumber = 'TEST' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        addLog(`Creating bus ${busNumber}...`, 'info');
+        
+        const response = await fetch(`${API_BASE}/admin/buses`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({
+            number: busNumber,
+            type: 'AC',
+            capacity: 50,
+            status: 'active',
+            ownerId: 'OWN001',
+            model: 'Test Model',
+            year: 2024,
+            fuelType: 'Diesel'
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          addLog(`Bus ${busNumber} created successfully!`, 'success');
+          await loadBuses(); // Immediate refresh
+        } else {
+          addLog('Failed to create bus: ' + (data.message || response.statusText), 'error');
+        }
+      } catch (err) {
+        addLog('Error creating bus: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteBus(id) {
+      if (!adminToken) {
+        addLog('Please login first!', 'error');
+        return;
+      }
+
+      try {
+        addLog(`Deleting bus ${id}...`, 'info');
+        
+        const response = await fetch(`${API_BASE}/admin/buses/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          }
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          addLog(`Bus ${id} deleted successfully!`, 'success');
+          await loadBuses(); // Immediate refresh
+        } else {
+          addLog('Failed to delete bus: ' + (data.message || response.statusText), 'error');
+        }
+      } catch (err) {
+        addLog('Error deleting bus: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteAllBuses() {
+      if (!adminToken) {
+        addLog('Please login first!', 'error');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to delete ALL buses?')) {
+        return;
+      }
+
+      try {
+        addLog(`Deleting all ${buses.length} buses...`, 'info');
+        
+        for (const bus of buses) {
+          await fetch(`${API_BASE}/admin/buses/${bus.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${adminToken}`
+            }
+          });
+        }
+        
+        addLog('All buses deleted!', 'success');
+        await loadBuses(); // Immediate refresh - should show empty
+      } catch (err) {
+        addLog('Error deleting buses: ' + err.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
