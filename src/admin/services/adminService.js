@@ -5,6 +5,26 @@
 
 import { dataStore } from '../../services/sharedDataService';
 
+// ============ AUTHENTICATION HELPERS ============
+
+function getAdminToken() {
+  const token = localStorage.getItem('nxtbus_admin_token');
+  const session = localStorage.getItem('nxtbus_admin_session');
+  
+  if (token && session) {
+    try {
+      const sessionData = JSON.parse(session);
+      // Session valid for 8 hours
+      if (Date.now() - sessionData.timestamp < 8 * 60 * 60 * 1000) {
+        return token;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 // ============ BUS MANAGEMENT ============
 
 export async function getBuses() {
@@ -164,30 +184,41 @@ export async function getOwners() {
 }
 
 export async function getOwnerById(id) {
-  const res = await fetch(`${API_BASE}/owners/${id}`);
+  const res = await fetch(`${API_BASE}/admin/owners/${id}`);
   return res.json();
 }
 
 export async function addOwner(ownerData) {
-  const res = await fetch(`${API_BASE}/owners`, {
+  const res = await fetch(`${API_BASE}/admin/owners`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAdminToken()}`
+    },
     body: JSON.stringify(ownerData)
   });
   return res.json();
 }
 
 export async function updateOwner(id, updates) {
-  const res = await fetch(`${API_BASE}/owners/${id}`, {
+  const res = await fetch(`${API_BASE}/admin/owners/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAdminToken()}`
+    },
     body: JSON.stringify(updates)
   });
   return res.json();
 }
 
 export async function deleteOwner(id) {
-  const res = await fetch(`${API_BASE}/owners/${id}`, { method: 'DELETE' });
+  const res = await fetch(`${API_BASE}/admin/owners/${id}`, { 
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${getAdminToken()}`
+    }
+  });
   return res.json();
 }
 
