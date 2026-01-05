@@ -261,6 +261,25 @@ class DatabaseService {
   }
 
   async updateBus(id, updates) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for updateBus');
+      
+      const index = fallbackData.buses.findIndex(b => b.id === id);
+      if (index === -1) return null;
+      
+      // Update only provided fields
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+          // Map snake_case to camelCase
+          const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+          fallbackData.buses[index][camelKey] = updates[key];
+        }
+      });
+      
+      return fallbackData.buses[index];
+    }
+    
     // Filter out undefined values to only update provided fields
     const filteredUpdates = Object.entries(updates)
       .filter(([key, value]) => value !== undefined)
@@ -272,7 +291,7 @@ class DatabaseService {
       return result.rows[0];
     }
     
-    const fields = Object.keys(filteredUpdates).map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const fields = Object.keys(filteredUpdates).map((key, index) => `${key} = ${index + 2}`).join(', ');
     const values = [id, ...Object.values(filteredUpdates)];
     
     const result = await this.query(
@@ -281,8 +300,20 @@ class DatabaseService {
     );
     return result.rows[0];
   }
+    
 
   async deleteBus(id) {
+    if (this.fallbackMode) {
+      await this.initializeFallbackData();
+      console.log('📦 Using fallback mode for deleteBus');
+      
+      const index = fallbackData.buses.findIndex(b => b.id === id);
+      if (index === -1) return null;
+      
+      fallbackData.buses[index].status = 'deleted';
+      return { success: true };
+    }
+    
     await this.query('UPDATE buses SET status = $1 WHERE id = $2', ['deleted', id]);
     return { success: true };
   }
